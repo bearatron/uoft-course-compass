@@ -19,8 +19,8 @@ class CourseEvalsParser:
     """
     # Static Attributes:
     #   - ...
-
-    LINK = "https://course-evals.utoronto.ca/BPI/fbview.aspx?blockid=OjzZ9-LrM-peMm6q2u&userid=cYQTzF-3fo2ufLLGH26rS-YRliCjyxiGeI8T&lng=en"
+    LINK = ("https://course-evals.utoronto.ca/BPI/fbview.aspx?blockid=OjzZ9-LrM-peMm6q2u&userid=cYQTzF-3fo2ufLLGH26rS"
+            "-YRliCjyxiGeI8T&lng=en")
 
     def __init__(self) -> None:
         pass
@@ -185,86 +185,6 @@ class CourseEvalsParser:
     @staticmethod
     def driver_init():
         ...
-
-    @staticmethod
-    def test_button_click() -> None:
-        driver = webdriver.Chrome()
-        driver.get(CourseEvalsParser.LINK)
-        wait = WebDriverWait(driver, 10)
-
-        # find and record the number of pages in the table to be parsed
-        try:
-            # wait until the number of pages element appears
-            pages_selector = \
-                "#fbvGridPagingContentHolderLvl1 > table.gPaging > tbody > tr > td:nth-child(n+5):nth-child(-n+5)"
-            num_pages_elem = wait.until(
-                EC.visibility_of_element_located((By.CSS_SELECTOR, pages_selector))
-            )
-            num_pages = int(num_pages_elem.text)
-
-        except TimeoutException:
-            print("Could not find total number of pages")
-            return
-        else:
-            print(f"{num_pages} pages total in table")
-
-        # make sure the course eval table loads before parsing it
-        try:
-            # wait till the table element appears
-            table_element_id = "fbvGrid"
-            table_element = wait.until(
-                EC.visibility_of_element_located((By.ID, table_element_id))
-            )
-
-        except TimeoutException:
-            print("Could not find course eval table")
-            return
-        else:
-            print("Course eval table found")
-
-        # make sure the "next page" button appears on the page
-        try:
-            # wait till the next button element appears
-            next_button_selector = "#fbvGridSearchBarLvl1 #fbvGridPagingContentHolderLvl1 input[value='>']"
-            next_button = wait.until(
-                EC.visibility_of_element_located((By.CSS_SELECTOR, next_button_selector))
-            )
-        except TimeoutException:
-            print("Could not find next button")
-            return
-        else:
-            print("Next button found")
-
-        for i in range(num_pages):
-            print(f"on page {i+1}/{num_pages}")
-            next_button.click()
-            print("Next page button clicked")
-
-            # make sure the course eval table loads before parsing it
-            try:
-                # wait till the table is removed from the DOM before searching for it again
-                wait.until(
-                    EC.staleness_of(table_element)
-                )
-
-                # reassign our table element variable to the new table element loaded into the DOM
-                table_element = wait.until(
-                    EC.visibility_of_element_located((By.ID, table_element_id))
-                )
-
-                # wait till the next button is removed from the DOM before searching for it again
-                wait.until(
-                    EC.staleness_of(next_button)
-                )
-
-                # reassign our next button element variable to the new next button element loaded into the DOM
-                next_button = wait.until(
-                    EC.visibility_of_element_located((By.CSS_SELECTOR, next_button_selector))
-                )
-            except TimeoutException:
-                print(f"Course eval table on page {i+2} took too long to load")
-            else:
-                print(f"Course eval table on page {i+2} found")
 
 
 if __name__ == "__main__":
