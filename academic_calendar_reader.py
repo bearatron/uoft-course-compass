@@ -409,6 +409,10 @@ class PrerequisiteTreeLoader:
         """docstring"""
         return self.prerequisite_trees[course_code]
 
+    def get_prerequisite_trees(self) -> dict[str, CourseTree]:
+        """docstring"""
+        return self.prerequisite_trees.copy()
+
 
 if __name__ == '__main__':
     # pass
