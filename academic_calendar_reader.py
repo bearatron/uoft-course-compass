@@ -1,211 +1,420 @@
-"""dosctring"""
+"""A collection of methods used to load and parse information from the U of T Academic Calendar website"""
 
-from bs4 import BeautifulSoup  # TODO: NOT SURE IF I DOWNLOADED THIS OR NOT, SO SAY THAT IN THE WRITEUP IF NEEDED
+from bs4 import BeautifulSoup
 import requests
 
 from course_tree import CourseTree
-from string_methods import *
+import string_methods
 
 
-class AcademicCalendarReader:
-    """Docstring"""
-    def __init__(self):
-        pass
+# A dictionary mapping tokens to the tokens that can precede them
+CAN_PRECEDE = {
+    '/': {')', 'CODE'},
+    ',': {')', 'CODE'},
+    '(': {'/', ',', '(', 'START'},
+    ')': {'/', ',', '(', ')', 'CODE'},
+    'CODE': {'/', ',', '(', 'START'}
+}
 
-    @staticmethod
-    def __is_at_end(prerequisite_string, i):
-        # Strings that mark the end of the prerequisites
-        ending_strings = [". ", "Notes:", "Prerequisite for Faculty", "For FASE"]
 
-        # Check against ending_strings:
-        for string in ending_strings:
-            # Verify that there are enough characters left in the string to index
-            if len(prerequisite_string) - i > len(string) - 1:
-                # Check if the subsequent string is the ending string
-                if prerequisite_string[i:i + len(string)] == string:
-                    return True
+def _is_at_end(prerequisite_string: str, i: int) -> bool:
+    """Return whether the given index marks the end of the prerequiste string. The end of the prerequisites is not
+    necessarily the last character of the string
 
-        return False
+    >>> prereq = '... Prerequisite for Faculty of Applied Science and Engineering students: ECE421H1/ ROB313H1'
+    >>> _is_at_end(prereq, 4)
+    True
+    >>> prereq = '... Notes: students enrolled in ASMAJ1446A who have ...'
+    >>> _is_at_end(prereq, 4)
+    True
+    >>> prereq = '... Notes: students enrolled in ASMAJ1446A who have ...'
+    >>> _is_at_end(prereq, 3)
+    False
+    """
 
-    @staticmethod
-    def __get_current_and_previous_token(prerequisite_string, sanitized, i) -> tuple[str, str]:
-        # Determine what the current token is
-        current = ""
-        if prerequisite_string[i] in {"/", ",", "(", ")"}:
-            current = prerequisite_string[i]
-        # Check whether the subsequent string is a course code
-        # Verify that there are enough characters left in the string to index
-        if len(prerequisite_string) - i > 7:
-            if is_course_code(prerequisite_string[i:i + 8]):
-                current = "CODE"
+    ending_strings = ['. ', 'Notes', 'Prerequisite for Faculty', 'For FASE']
 
-        # Determine what the previous token is
-        if sanitized == "":
-            previous = "START"
-        elif sanitized[-1] in {"/", ",", "(", ")"}:
-            previous = sanitized[-1]
-        else:
-            # It's in the string so it must be legal, and the only other thing it could be is a code
-            previous = "CODE"
+    # Check against ending_strings:
+    for string in ending_strings:
+        # Check if the subsequent string is one of the ending strings
+        if prerequisite_string[i:i + len(string)] == string:
+            return True
 
-        return current, previous
+    # The index does not mark the beginning of one of the ending strings, so it is not at the end
+    return False
 
-    @staticmethod
-    def _search_for_grade(prerequisite_string: str, i: int) -> int:
-        previous_connective_i = prerequisite_string.replace(",", "/").rfind("/", 0, i)
-        if previous_connective_i == -1:
-            previous_connective_i = 0
-        next_connective_i = prerequisite_string.replace(",", "/").find("/", i)
-        if next_connective_i == -1:
-            next_connective_i = len(prerequisite_string)  # we don't subtract one because of reasons
 
-        percent_i = prerequisite_string.find("%", previous_connective_i, next_connective_i)
-        if percent_i == -1:
-            return -1
+def _get_current_and_previous_token(prerequisite_string: str, sanitized: str, i: int) -> tuple[str, str, int]:
+    """Given the prerequisite string and the current sanitized version so far, return a tuple containing what the
+    current and previous token types are, and the length of the current token in that order.
+    Each token is one of {'/', ',', '(', ')', 'CODE', 'START', ''}.
+    The length of each token is 1, except the length for 'CODE' is 8.
 
-        return int(prerequisite_string[percent_i-2:percent_i])
+    >>> _get_current_and_previous_token('Prerequisites: CSC110Y1/CSC111H1', '', 15)
+    ('CODE', 'START', 8)
+    >>> _get_current_and_previous_token('Prerequisites: CSC110Y1/CSC111H1', '', 0)
+    ('', 'START', 1)
+    >>> _get_current_and_previous_token('Prerequisites: CSC110Y1/CSC111H1', 'CSC110Y1', 23)
+    ('/', 'CODE', 1)
+    """
+    # Determine what the current token is
+    current = ''
+    if prerequisite_string[i] in {'/', ',', '(', ')'}:
+        current = prerequisite_string[i]
+    # Check whether the subsequent string is a course code
+    elif string_methods.is_course_code(prerequisite_string[i:i + 8]):
+        current = 'CODE'
 
-    @staticmethod
-    def sanitize_prerequisites(prerequisite_string_old: str) -> str:
-        """docstring"""
-        prerequisite_string_old = prerequisite_string_old.strip()
-        prerequisite_string_old = prerequisite_string_old.replace(";", ",")
-        prerequisite_string_old = prerequisite_string_old.replace("[", "(")
-        prerequisite_string_old = prerequisite_string_old.replace("]", ")")
-        prerequisite_string = prerequisite_string_old.replace(" and ", ",")  # Have to do it this way because of CSC311
+    # Determine what the previous token is
+    if sanitized == '':
+        # There is no previous token, it is at the start
+        previous = 'START'
+    elif sanitized[-1] in {'/', ',', '(', ')'}:
+        previous = sanitized[-1]
+    else:
+        # The previous token is in the string so it must be legal. The only other thing it could be is a Course Code
+        previous = "CODE"
 
-        sanitized = ""
+    # Determine what the length of the current token is
+    if current == 'CODE':
+        length_of_current = 8
+    else:
+        length_of_current = 1
 
-        # A dictionary containing tokens and what can precede them
-        can_precede = {
-            "/": {")", "CODE"},
-            ",": {")", "CODE"},
-            "(": {"/", ",", "(", "START"},
-            ")": {"/", ",", "(", ")", "CODE"},  # Needs to be able to follow everything to prevent unbalanaced brackets
-            "CODE": {"/", ",", "(", "START"}
-        }
+    return current, previous, length_of_current
 
-        i = 0  # REMEMBER TO INCREMENT EVERYWHERE IT NEEDS TO BE INCREMENTED
-        while i < len(prerequisite_string):
-            if AcademicCalendarReader.__is_at_end(prerequisite_string, i):
-                break
 
-            current, previous = AcademicCalendarReader.__get_current_and_previous_token(
-                prerequisite_string, sanitized, i
-            )
+def _search_for_grade(prerequisite_string: str, i: int) -> int:
+    """Given a prerequisite string and an index, search for a grade requirement between in the section described by the
+    previous and next connectives and return that requirement, or -1 if none were found
 
-            length_of_current = 8 if current == "CODE" else 1
+    Preconditions:
+        - 0 <= i < len(prerequisite_string)
 
-            if current == "":
-                # The current token is invalid, so we move onto the next token
-                pass
+    >>> _search_for_grade('... /CSC110Y1 (70%)/ ...', 5)
+    70
+    >>> _search_for_grade('... ,MAT137Y1 with a minimum grade of 85%, ...', 5)
+    85
+    >>> _search_for_grade('... /at least 80% in PHY152H1/ ...', 5)
+    80
+    >>> _search_for_grade('... /PHY152H1/ ...', 5)
+    -1
+    """
+
+    # Determine the location of the previous connective in the prerequisite string, determined by the index i
+    previous_connective_index = prerequisite_string.replace(',', '/').rfind('/', 0, i)
+    if previous_connective_index == -1:
+        # No previous connective was found, so the starting search location is the start of the string
+        previous_connective_index = 0
+    # Determine the location of the next connective in the prerequisite string, determined by the index i
+    next_connective_index = prerequisite_string.replace(',', '/').find('/', i)
+    if next_connective_index == -1:
+        # No next connective was found, so the ending search location is the end of the string
+        next_connective_index = len(prerequisite_string)  # we don't subtract one because of reasons
+
+    # Determine the location of a percent between the previous_ and next_connective_index
+    percent_index = prerequisite_string.find('%', previous_connective_index, next_connective_index)
+    # No percent was found, so there is no prerequisite grade requirement
+    if percent_index == -1:
+        return -1
+
+    # The grade requirement is given by the two digits immediately preceding the percentage sign
+    grade_requirement = int(prerequisite_string[percent_index - 2:percent_index])
+
+    return grade_requirement
+
+
+def _sanitize_prerequisites(prerequisite_string_raw: str) -> str:
+    """Given the raw prerequisite string, return a properly formatted prerequisite string (as described in the project
+    report)
+
+    >>> prereq = 'CSC110Y1 (with a minimum mark of at least 85%) / CSC165H1 (with a minimum mark of at least 85%)'
+    >>> _sanitize_prerequisites(prereq)
+    'CSC110Y1[85]/CSC165H1[85]'
+    >>> prereq = 'CSC436H1/ CSCD37H3/ 75% or greater in CSC336H1 / 75% or greater in CSC338H5/ 75% or greater in ' + \
+                 'CSCC37H3/ equivalent mathematical background; CSC209H1/ proficiency in C, C++, or Fortran'
+    >>> _sanitize_prerequisites(prereq)
+    'CSC436H1[-1]/CSC336H1[75],CSC209H1[-1]'
+    """
+    # Standardize the notation used in the prerequisite strings
+    prerequisite_string_raw = prerequisite_string_raw.strip() \
+        .replace(';', ',') \
+        .replace('[', '(') \
+        .replace(']', ')') \
+        .replace(' and ', '&')
+
+    # We have to draw a distinction between these two strings for courses that say something like '77% in MAT135H1 and
+    # MAT136H1'. If we naively replace ' and ' with ',' then we lose the prerequisite grade information for MAT136H1. We
+    # keep two copies of the string so that one can be used when parsing the string and the other can be used when
+    # searching for grade prerequisites.
+    prerequisite_string = prerequisite_string_raw.replace('&', ',')
+
+    sanitized = ''
+
+    index = 0
+    while index < len(prerequisite_string):
+        # Check if the index is at the end of the prerequisite string and there is no more information to parse
+        if _is_at_end(prerequisite_string, index):
+            break
+
+        # Get the current token and the previous token that was parsed, and the length of the current token
+        current, previous, length_of_current = _get_current_and_previous_token(prerequisite_string, sanitized, index)
+
+        if current != '':
+            # The current token is valid, so we check if it can follow the previous token
+            if previous in CAN_PRECEDE[current]:
+                # The current token can follow the previous token, so we add it to the sanitized string
+                if current == 'CODE':
+                    # Get the associated course's grade requirement (with the raw string for the reason described above)
+                    grade_requirement = _search_for_grade(prerequisite_string_raw, index)
+
+                    # Generate the properly formatted course code and append it to the sanitized string
+                    course_code = f'{prerequisite_string[index:index + 8]}[{grade_requirement}]'
+                    sanitized += course_code
+                else:
+                    # The current token is not a course code so we just add it as is
+                    sanitized += current
             else:
-                # The current token is valid, so we check if it can follow the previous token
-                if previous in can_precede[current]:
-                    # The current token can follow the previous token, so we add it to the sanitized string
-                    if current == "CODE":
-                        sanitized += prerequisite_string[i:i+8]
-                        sanitized += f"[{(
-                            AcademicCalendarReader._search_for_grade(
-                                prerequisite_string_old.replace(" and ", "#"), i  # replace so indices align
-                            )
-                        )}]"
-                    else:
-                        sanitized += current
+                # The current token cannot follow the previous token, so we do not necessarily add it. There are two
+                # special cases we must handle:
+                # Case 1: If the current token is an open bracket, we must skip to the matching closed bracket because
+                # nothing in between belongs
+                if current == "(":
+                    index = prerequisite_string.find(")", index)
+
+                # Case 2: if the current token is a comma and the previous token is a slash, then the comma
+                # takes precendent over the slash
+                if current == "," and previous == "/":
+                    sanitized = sanitized[:-1] + current
+
+        # Increment the index for the next iteration by the length of the current token
+        index += length_of_current
+
+    # Remove any instances of empty brackets within the prerequisites string and any extra connectives
+    # Also remove any connectives directly preceding empty brackets
+    sanitized = _remove_extra_connectives(_remove_empty_brackets(sanitized))
+
+    return sanitized
+
+
+def _remove_empty_brackets(prerequisite_string: str) -> str:
+    """Remove any instances of empty brackets from a prerequisite string. Empty brackets are those that contain only
+    connectives and more brackets.
+
+    Preconditions:
+        - All parentheses are balanced
+
+    >>> _remove_empty_brackets('CSC111H1/(),MAT137Y1')
+    'CSC111H1/,MAT137Y1'
+    >>> _remove_empty_brackets('(),MAT137Y1,((),/(),)/CSC111H1')
+    ',MAT137Y1,/CSC111H1'
+    >>> _remove_empty_brackets('(MAT137Y1,(/()))')
+    '(MAT137Y1,)'
+    """
+    # Loop through every character in the prerequisite string
+    index = 0
+    while index < len(prerequisite_string):
+        # Continue to the next character if the current character is not '('
+        if prerequisite_string[index] != '(':
+            index += 1
+            continue
+
+        # Determine whether the set of parentheses corresponding to the '(' at the current index are empty
+        j = index + 1
+        empty = True
+        depth = 1
+        while depth != 0:
+            # Adjust the current depth value depending on whether there are nested parentheses
+            if prerequisite_string[j] == '(':
+                depth += 1
+            elif prerequisite_string[j] == ')':
+                depth -= 1
+
+            # If there is a character that is not '(', ',', '/', or ')' then the parentheses are not empty
+            if prerequisite_string[j] not in {'(', ',', '/', ')'}:
+                empty = False
+
+            j += 1
+
+        if empty:
+            # Then we know that j is the end parenthesis
+            prerequisite_string = prerequisite_string[:index] + prerequisite_string[j:]
+        else:
+            index += 1
+
+    return prerequisite_string
+
+
+def _remove_extra_connectives(prerequisite_string: str) -> str:
+    """Remove any extra connectives that are no longer contributing anything to the prerequisite string. These are due
+    to connectives appearing in parts of the raw prerequisite string that are not in the properly formatted prerequisite
+    string.
+
+    >>> _remove_extra_connectives('MAT137Y1//CSC111H1')
+    'MAT137Y1/CSC111H1'
+    >>> _remove_extra_connectives()
+    """
+    if prerequisite_string != "":
+        index = len(prerequisite_string) - 1
+        while index >= 0:
+            # Get the information about the current character
+            char = prerequisite_string[index]
+            is_connective = char in {',', '/'}
+
+            # If it is not a connective, move on to the next character
+            if not is_connective:
+                index -= 1
+                continue
+
+            # There should be no connectives at the beginning or at the end
+            if index == 0:
+                prerequisite_string = prerequisite_string[1:]
+                index -= 1
+                continue
+            elif index == len(prerequisite_string) - 1:
+                prerequisite_string = prerequisite_string[:-1]
+                index -= 1
+                continue
+
+            # Get the characters directly preceding and succeeding the current index
+            # The characters are not at the beginning or the end so there are no worries with indices overflowing
+            prev_char = prerequisite_string[index - 1]
+            next_char = prerequisite_string[index + 1]
+
+            # There should be no connectives after an open bracket or before a closed bracket
+            if prev_char == '(' or next_char == ')':
+                prerequisite_string = prerequisite_string[:index] + prerequisite_string[index + 1:]
+                index -= 1
+                continue
+
+            # There should be no connectives adjacent to one another (we don't check next because we are looping back)
+            if prev_char in {',', '/'}:
+                if prev_char == ',':
+                    # The previous character takes priority so we remove the current character
+                    prerequisite_string = prerequisite_string[:index] + prerequisite_string[index + 1:]
+                    index -= 1
+                    continue
                 else:
-                    # The current token cannot follow the previous token, so we do not add it*.
-                    # If the current token is an open bracket, so we must skip to the matching closed bracket because
-                    # nothing in between belongs
-                    if current == "(":
-                        i = prerequisite_string.find(")", i)  # Remember that we increment by 1 again at the end
+                    # Since the previous character doesn't take priority we can remove it and keep the current character
+                    prerequisite_string = prerequisite_string[:index - 1] + prerequisite_string[index:]
+                    index -= 1
+                    continue
 
-                    # Special case: if the current token is a comma and the previous token is a slash, then the comma
-                    # takes precendent over the slash
-                    if current == "," and previous == "/":
-                        sanitized = sanitized[:-1] + current
+            index -= 1
 
-            i += length_of_current
+    return prerequisite_string
 
-        # Remove any instances of empty brackets within the prerequisites string
-        # Also remove any connectives directly preceding empty brackets
-        while "()" in sanitized:
-            index = sanitized.find("()")
-            sanitized = sanitized[:index] + sanitized[index+2:]
 
-            if index > 0 and sanitized[index - 1] in {",", "/"}:
-                sanitized = sanitized[:index-1] + sanitized[index:]
+def load_course_prerequisites(program: str) -> dict[str, str]:
+    """Return a dictionary mapping course codes to their properly formatted prerequisite strings for all courses in the
+    specified program
+    """
+    page_count = _get_number_of_pages(program)
+    course_dictionary = {}
 
-        # Remove any trailing connectives that are a result of written prerequisites at the end
-        # Note: these might not all be at the end of the string
-        if sanitized != "":
-            i = 0
-            while i < len(sanitized):
-                char = sanitized[i]
-                is_connective = char in {',', '/'}
-                if is_connective and i >= len(sanitized) - 1:  # There are some cases (e.g. MAT244H1) where i is greater
-                    sanitized = sanitized[:-1]
-                elif is_connective and sanitized[i + 1] == ")":
-                    sanitized = sanitized[:i] + sanitized[i+1:]
-                else:
-                    i += 1  # we don't increment i in the other cases because they mutated the string
+    # Loop through all pages of courses for the given program
+    for i in range(page_count):
+        # Format the program name properly to be inserted into the url
+        program = program.replace(' ', '+')
 
-        return sanitized
-
-    @staticmethod
-    def load_course_prerequisites(program: str) -> dict[str, str]:
-        """Docstring"""
-        page_count = AcademicCalendarReader.get_number_of_pages(program)
-        course_dictionary = {}
-        for i in range(page_count):
-            program = program.replace(" ", "+")
-            url = f"https://artsci.calendar.utoronto.ca/search-courses?field_section_value={program}&page={i}"
-            webpage = requests.get(url)
-            soup = BeautifulSoup(webpage.text, features='html.parser')
-
-            course_menu = soup.find("div", class_="view-content")
-            course_divs = course_menu.find_all("div", class_="views-row", recursive=False)
-            for course_div in course_divs:
-                course_name = course_div.find("div", attrs={"aria-label": True}).text.strip()[0:8]
-                prerequisite_span = course_div.find("span", class_="views-field views-field-field-prerequisite")
-                if prerequisite_span:
-                    prerequisites = prerequisite_span.find("span", class_="field-content").text
-                    # TODO: I don't like how I have to run two passes on it...
-                    prerequisites = AcademicCalendarReader.sanitize_prerequisites(prerequisites)
-                    if prerequisites == "":
-                        prerequisites = "N/A"
-
-                else:
-                    prerequisites = "N/A"
-                course_dictionary[course_name] = prerequisites
-
-        return course_dictionary
-
-    @staticmethod
-    def get_number_of_pages(program: str) -> int:
-        """Docstring"""
-        url = f"https://artsci.calendar.utoronto.ca/search-courses?field_section_value={program.replace(" ", "+")}"
+        # Load the webpage and extract the html data for the given program
+        url = f'https://artsci.calendar.utoronto.ca/search-courses?field_section_value={program}&page={i}'
         webpage = requests.get(url)
         soup = BeautifulSoup(webpage.text, features='html.parser')
 
-        last_page_a = soup.find("a", title="Go to last page")
+        # Find the section of the html corresponding to the list of courses on the current page
+        course_menu = soup.find('div', class_='view-content')
+        course_divs = course_menu.find_all('div', class_='views-row', recursive=False)
+        # Loop through each course in the list of courses on the current page
+        for course_div in course_divs:
+            # Extract the course code
+            course_code = course_div.find('div', attrs={'aria-label': True}).text.strip()[0:8]
+            # Extract the prerequisite string
+            prerequisite_span = course_div.find('span', class_='views-field views-field-field-prerequisite')
+            if prerequisite_span:
+                # A list of prerequisites was found for the current course, so extract and sanitize the data
+                prerequisites = prerequisite_span.find('span', class_='field-content').text
+                prerequisites = _sanitize_prerequisites(prerequisites)
+                if prerequisites == '':
+                    prerequisites = ''
+            else:
+                # No prerequistes were found for the given course
+                prerequisites = ''
 
-        if not last_page_a:
-            # There was no last page button found, so there is only one page
-            return 1
-        else:
-            last_page_url = last_page_a.get("href")
-            index = last_page_url.rfind("=")
-            page_amount = int(last_page_url[index+1:]) + 1
-            return page_amount
+            # Add the course code and corresponding prerequisite string to the dictionary
+            course_dictionary[course_code] = prerequisites
 
-    @staticmethod
-    def convert_to_tree(prerequisite_dict: dict[str, str]) -> dict[str, CourseTree]:
-        """Docstring"""
-        return {
-            course_code: CourseTree.generate_course_tree(prerequisite_dict[course_code], course_code)
-            for course_code in prerequisite_dict
-        }
+    return course_dictionary
 
 
-if __name__ == "__main__":
-    ...
+def _get_number_of_pages(program: str) -> int:
+    """Return the number of pages of courses a given program has in the academic calendar
+    """
+    # Format the program name properly to be inserted into the url
+    program = program.replace(' ', '+')
+
+    # Load the webpage and extract the html data for the given program
+    url = f"https://artsci.calendar.utoronto.ca/search-courses?field_section_value={program}"
+    webpage = requests.get(url)
+    soup = BeautifulSoup(webpage.text, features='html.parser')
+
+    # Find the button that links to the last page
+    last_page = soup.find("a", title="Go to last page")
+
+    if not last_page:
+        # There was no last page button found, so there is only one page
+        return 1
+    else:
+        # Get the number of pages from the url for the last page
+        last_page_url = last_page.get("href")
+        index = last_page_url.rfind("=")
+        page_amount = int(last_page_url[index + 1:]) + 1
+
+        return page_amount
+
+
+def convert_to_tree(prerequisite_dict: dict[str, str]) -> dict[str, CourseTree]:
+    """Return a dictionary mapping courses to course trees generated from the prerequisite string corresponding to the
+    given course
+
+    Preconditions:
+        - Every prerequisite string in prerequisite_dict is properly formatted prerequisite string (as described in the
+        project report)
+    """
+    return {
+        course_code: CourseTree.generate_course_tree(prerequisite_dict[course_code], course_code)
+        for course_code in prerequisite_dict
+    }
+
+
+class PrerequisiteTreeLoader:
+    """docstring"""
+    prerequisite_trees: dict[str, CourseTree]
+
+    def __init__(self, programs: list[str]):
+        prerequisite_strings: dict[str, str] = {}
+        self.prerequisite_trees = {}
+        for program in programs:
+            prerequisite_strings.update(load_course_prerequisites(program))
+            self.prerequisite_trees.update(convert_to_tree(prerequisite_strings))
+
+        for course_code in self.prerequisite_trees:
+            course_tree = self.prerequisite_trees[course_code]
+            leaves = course_tree.get_course_leaves()
+            for leaf in leaves:
+                if leaf.get_root() in self.prerequisite_trees:
+                    leaf.set_subtrees(self.prerequisite_trees[leaf.get_root()].get_subtrees())
+
+    def get_prerequisite_tree(self, course_code: str) -> CourseTree:
+        """docstring"""
+        return self.prerequisite_trees[course_code]
+
+
+if __name__ == '__main__':
+    # pass
+    import python_ta
+    python_ta.check_all(config={
+        'max-line-length': 120,
+        'extra-imports': ['bs4', 'course_tree', 'requests', 'string_methods'],
+        'disable': ['static_type_checker'],
+    })
