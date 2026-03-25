@@ -28,7 +28,7 @@ class CourseEvalsParser:
     @staticmethod
     def parse_all() -> None:
         """Scrapes all courses and outputs the result in a csv file
-        WARNING: This will take a reeaally long time because the scraper will go page by page
+        WARNING: This will take a reeaally long time because the scraper will go page by page and there are ~4500 pages
         """
 
         # create a webdriver and go to the link
@@ -188,7 +188,10 @@ class CourseEvalsParser:
 
 
 if __name__ == "__main__":
+    pass
     # CourseEvalsParser.parse_all()
-    CourseEvalsParser.parse_department("Computer Science")
+    # CourseEvalsParser.parse_department("Computer Science")
+    # CourseEvalsParser.parse_department("Statistical Sciences")
     # CourseEvalsParser.parse_department("Mathematics")
-    # CourseEvalsParser.test_button_click()
+    # CourseEvalsParser.parse_department("Economics")
+    # CourseEvalsParser.parse_department("Physics")
