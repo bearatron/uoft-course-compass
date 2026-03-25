@@ -9,5 +9,6 @@ if __name__ == "__main__":
     running = True
     while running:
         course = input("Please enter a course code: ")
-        print(loader.get_prerequisite_tree(course))
+        tree = loader.get_prerequisite_tree(course)
+        print(tree)
         print()

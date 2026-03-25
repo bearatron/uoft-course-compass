@@ -57,6 +57,13 @@ class CourseTree:
         """Return the root of the Course Tree"""
         return self._root
 
+    def get_code(self) -> str:
+        """Return the course code of the Course Tree with the grade requirement if applicable"""
+        if self._required_grade == -1:
+            return str(self._root)
+        else:
+            return f'{self._root} ({self._required_grade}%)'
+
     def get_course_leaves(self) -> list[CourseTree]:
         """Return all the leaves of the Course Tree"""
         leaves = []
