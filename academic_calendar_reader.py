@@ -396,6 +396,12 @@ def convert_to_tree(prerequisite_dict: dict[str, str]) -> dict[str, CourseTree]:
     }
 
 
+class CourseNotFoundError(Exception):
+    """Docstring"""
+    #TODO: I need a str method or smth idk
+    pass
+
+
 class PrerequisiteTreeLoader:
     """docstring"""
     prerequisite_trees: dict[str, CourseTree]
@@ -420,6 +426,8 @@ class PrerequisiteTreeLoader:
 
     def get_prerequisite_tree(self, course_code: str) -> CourseTree:
         """docstring"""
+        if course_code not in self.prerequisite_trees:
+            raise CourseNotFoundError
         return self.prerequisite_trees[course_code]
 
     def get_prerequisite_trees(self) -> dict[str, CourseTree]:
@@ -428,6 +436,8 @@ class PrerequisiteTreeLoader:
 
     def get_name_and_description(self, course_code: str) -> tuple[str, str]:
         """docstring"""
+        if course_code not in self.course_information:
+            raise CourseNotFoundError
         return self.course_information[course_code]
 
 
