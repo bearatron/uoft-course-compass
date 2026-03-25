@@ -305,12 +305,13 @@ def _remove_extra_connectives(prerequisite_string: str) -> str:
     return prerequisite_string
 
 
-def load_course_prerequisites(program: str) -> dict[str, str]:
+def load_course_information(program: str) -> tuple[dict[str, str], dict[str, tuple[str, str]]]:
     """Return a dictionary mapping course codes to their properly formatted prerequisite strings for all courses in the
-    specified program
+    specified program  # TODO: UPDATE DOSCTRINGS AND STUFF
     """
     page_count = _get_number_of_pages(program)
-    course_dictionary = {}
+    prerequisite_dictionary = {}
+    information_dictionary = {}
 
     # Loop through all pages of courses for the given program
     for i in range(page_count):
@@ -327,8 +328,13 @@ def load_course_prerequisites(program: str) -> dict[str, str]:
         course_divs = course_menu.find_all('div', class_='views-row', recursive=False)
         # Loop through each course in the list of courses on the current page
         for course_div in course_divs:
-            # Extract the course code
-            course_code = course_div.find('div', attrs={'aria-label': True}).text.strip()[0:8]
+            # Extract the course code and name
+            course_name = course_div.find('div', attrs={'aria-label': True}).text.strip()
+            course_code = course_name[0:8]
+            # Extract the course description
+            description_div = course_div.find('div', class_='views-field views-field-body')
+            description = description_div.find('div', class_='field-content').text
+
             # Extract the prerequisite string
             prerequisite_span = course_div.find('span', class_='views-field views-field-field-prerequisite')
             if prerequisite_span:
@@ -341,10 +347,13 @@ def load_course_prerequisites(program: str) -> dict[str, str]:
                 # No prerequistes were found for the given course
                 prerequisites = ''
 
-            # Add the course code and corresponding prerequisite string to the dictionary
-            course_dictionary[course_code] = prerequisites
+            # Add the course code and corresponding prerequisite string to the prerequisite dictionary
+            prerequisite_dictionary[course_code] = prerequisites
 
-    return course_dictionary
+            # Add the course code and corresponding name and description to the information dictionary
+            information_dictionary[course_code] = (course_name, description)
+
+    return prerequisite_dictionary, information_dictionary
 
 
 def _get_number_of_pages(program: str) -> int:
@@ -390,13 +399,17 @@ def convert_to_tree(prerequisite_dict: dict[str, str]) -> dict[str, CourseTree]:
 class PrerequisiteTreeLoader:
     """docstring"""
     prerequisite_trees: dict[str, CourseTree]
+    course_information: dict[str, tuple[str, str]]
 
     def __init__(self, programs: list[str]):
         prerequisite_strings: dict[str, str] = {}
         self.prerequisite_trees = {}
+        self.course_information = {}
         for program in programs:
-            prerequisite_strings.update(load_course_prerequisites(program))
+            prerequisite_dictionary, information_dictionary = load_course_information(program)
+            prerequisite_strings.update(prerequisite_dictionary)
             self.prerequisite_trees.update(convert_to_tree(prerequisite_strings))
+            self.course_information.update(information_dictionary)
 
         for course_code in self.prerequisite_trees:
             course_tree = self.prerequisite_trees[course_code]
@@ -412,6 +425,10 @@ class PrerequisiteTreeLoader:
     def get_prerequisite_trees(self) -> dict[str, CourseTree]:
         """docstring"""
         return self.prerequisite_trees.copy()
+
+    def get_name_and_description(self, course_code: str) -> tuple[str, str]:
+        """docstring"""
+        return self.course_information[course_code]
 
 
 if __name__ == '__main__':
