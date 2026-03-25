@@ -57,7 +57,7 @@ class CourseTree:
         """Return the root of the Course Tree"""
         return self._root
 
-    def get_code(self) -> str:
+    def get_graded_code(self) -> str:
         """Return the course code of the Course Tree with the grade requirement if applicable"""
         if self._required_grade == -1:
             return str(self._root)
