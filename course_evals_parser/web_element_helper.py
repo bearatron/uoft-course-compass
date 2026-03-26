@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 from typing import Optional
-
 from selenium.common import TimeoutException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.remote.webelement import WebElement
