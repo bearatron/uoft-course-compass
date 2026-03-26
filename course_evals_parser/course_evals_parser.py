@@ -119,7 +119,6 @@ class CourseEvalsParser:
         driver does NOT quit after function execution
 
         Preconditions:
-            - driver object has been initialized
             - driver.get(CourseEvalsParser.LINK) has been called
         """
         # wait object representing a timeout of 10 seconds
@@ -167,6 +166,9 @@ class CourseEvalsParser:
             output_filename: str
     ) -> None:
         """Parse a page in the course eval table
+
+        Preconditions:
+            - driver.get(CourseEvalsParser.LINK) has been called
         """
 
         # find the WebElements of each row in the table
@@ -237,6 +239,10 @@ class CourseEvalsParser:
         if not find_course_eval_table.success:
             driver.quit()
             return
+
+        # clear the contents of the demo file
+        with open("demo.csv", 'w') as file:
+            pass
 
         # parse only the first two pages for demonstration purposes
         for i in range(2):
