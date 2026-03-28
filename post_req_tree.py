@@ -75,5 +75,5 @@ def course_difference_tree(tree1: CourseTree, tree2: CourseTree):
     courses1 = all_items_in_tree(tree1)
     courses2 = all_items_in_tree(tree2)
     courses_exclusive_tree1, courses_exclusive_tree2 = courses1 - courses2, courses2 - courses1
-    return f"Courses you can take if you took {tree1.get_root()} instead of {tree2.get_root()}: {courses_exclusive_tree1}"\
-           f"Courses you can take if you took {tree2.get_root()} instead of {tree1.get_root()}: {courses_exclusive_tree2}"
+    return {"course for both": courses1 | courses2, f"course exclusive for {tree1.get_root()}" : courses_exclusive_tree1,
+            f"course exclusive for {tree2.get_root()}": courses_exclusive_tree2}
