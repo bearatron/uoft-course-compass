@@ -5,13 +5,22 @@ from academic_calendar_reader import PrerequisiteTreeLoader
 if __name__ == "__main__":
     programs = ["Computer Science", "Mathematics"]
     loader = PrerequisiteTreeLoader(programs)
+    courses_taken = {
+        'MAT137Y1': 100,
+        'CSC110Y1': 100,
+        'CSC111H1': 100,
+        'MAT223H1': 100,
+        'STA237H1': 100
+    }
 
     running = True
     while running:
         course = input("Please enter a course code: ")
+
         tree = loader.get_prerequisite_tree(course)
-        name, description = loader.get_name_and_description(course)
-        print(name)
-        print(description)
         print(tree)
-        print()
+        print('------')
+
+        simplified_tree = loader.get_simplified_tree(course, courses_taken)
+        print(simplified_tree)
+        print('------')

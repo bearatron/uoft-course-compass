@@ -434,6 +434,13 @@ class PrerequisiteTreeLoader:
         """docstring"""
         return self.prerequisite_trees.copy()
 
+    def get_simplified_tree(self, course_code: str, courses_taken: dict[str, int]) -> CourseTree:
+        """Docstring"""
+        if course_code not in self.prerequisite_trees:
+            raise CourseNotFoundError
+        # we must copy so things don't go wrong
+        return self.prerequisite_trees[course_code].copy().simplify_tree(courses_taken)
+
     def get_name_and_description(self, course_code: str) -> tuple[str, str]:
         """docstring"""
         if course_code not in self.course_information:

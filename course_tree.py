@@ -84,7 +84,7 @@ class CourseTree:
             - is_course_code(course_code)"""
         # Check if this is the top call and not a recursive call
         if course_code:
-            # If there are no prerequisites, return an empty tree
+            # If there are no prerequisites, return an empty tree  # TODO: not an empty tree :)
             if prerequisites == '':
                 return CourseTree(course_code, -1, [])
             # Otherwise, return a course tree generated based on the provided prerequisites string
@@ -150,6 +150,58 @@ class CourseTree:
             for subtree in self._subtrees:
                 str_so_far += subtree._str_indented(depth + 1)
             return str_so_far
+
+    def _course_completed(self, courses_taken: dict[str, int]) -> bool:
+        """Docstring"""
+        for course in courses_taken:
+            grade = courses_taken[course]
+            if course == self._root and grade >= self._required_grade:
+                return True
+
+        return False
+
+    def _remove_empty_subtrees(self) -> None:
+        """Docstring"""
+        for i in range(len(self._subtrees) - 1, -1, -1):
+            if self._subtrees[i].is_empty():
+                self._subtrees.pop(i)
+
+    def simplify_tree(self, courses_taken: dict[str, int]) -> CourseTree:
+        """Docstring"""
+        # Simplify subtrees
+        for i in range(len(self._subtrees)):
+            self._subtrees[i] = self._subtrees[i].simplify_tree(courses_taken)
+
+        if self._root == 'ALL':
+            # If all subtrees are empty, return an emptry tree
+            if all(subtree.is_empty() for subtree in self._subtrees):
+                return CourseTree(None, -1, [])
+            # Otherwise, return the current tree with empty subtrees removed
+            else:
+                self._remove_empty_subtrees()
+                return self
+
+        elif self._root == 'CHOOSE':
+            # If one of the subtrees is empty, return an empty tree
+            if any(subtree.is_empty() for subtree in self._subtrees):
+                return CourseTree(None, -1, [])
+            # Otherwise, return the current tree
+            else:
+                return self
+
+        else:  # self._root is a course
+            # If the course at the root has been completed, return an empty tree
+            if self._course_completed(courses_taken):
+                return CourseTree(None, -1, [])
+            # Otherwise, return the current tree with empty subtrees removed
+            else:
+                self._remove_empty_subtrees()
+                return self
+
+    def copy(self) -> CourseTree:
+        """Dosctring"""
+        copied_tree = CourseTree(self._root, self._required_grade, [subtree.copy() for subtree in self._subtrees])
+        return copied_tree
 
 
 if __name__ == '__main__':
