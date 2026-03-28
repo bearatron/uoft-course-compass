@@ -113,12 +113,18 @@ def compute(filename: str, output_filename: str) -> None:
     computed = {}
 
     for course_code in course_data:
-        print(course_code)
-
         course_offerings = course_data[course_code]
-        num_offerings = len(course_offerings)
 
-        # intellectual_engagement to likelihood_to_recommend
+        num_offerings = len(course_offerings)
+        historical_offerings = _compute_historical_offerings(course_offerings)
+
+        years_offered = {term[1] for term in historical_offerings}
+        num_years_offered = len(years_offered)
+
+        summer_offerings = _compute_summer_offerings(historical_offerings)
+
+        # gets the metrics in the ENTRIES_TO_DATATYPE mapping
+        # metrics are intellectual_engagement to likelihood_to_recommend
         metrics = list(ENTRIES_TO_DATATYPE.keys())[7:16]
 
         average_course_metrics, average_course_metrics_rounded = (
@@ -137,15 +143,17 @@ def compute(filename: str, output_filename: str) -> None:
         average_course_metrics_grouped = _compute_average_metrics_grouped(metrics_grouped, average_course_metrics, round_ndigits)
 
         profs = _compute_prof_data(course_offerings, round_ndigits)
-        # TODO: generate list of profs sorted by average rating
-        # TODO: record number of people surveyed
+        profs_by_rating = _sorted_profs(profs)
 
         computed[course_code] = {
             "average_metrics": average_course_metrics_rounded,
             "grouped_metrics": average_course_metrics_grouped,
-            "historical_offerings": [],
-            "profs": profs,
             "num_offerings": num_offerings,
+            "num_years_offered": num_years_offered,
+            "historical_offerings": historical_offerings,
+            "summer_offerings": summer_offerings,
+            "profs": profs,
+            "profs_by_rating": profs_by_rating,
         }
 
         # clear existing contents
@@ -156,6 +164,10 @@ def compute(filename: str, output_filename: str) -> None:
         with open(output_filename, "a") as write_file:
             json.dump(computed, write_file, indent=2)
 
+
+##########################################
+# Below are helper functions for compute #
+##########################################
 
 def _compute_average_metrics(
         metrics: list[str],
@@ -236,13 +248,15 @@ def _compute_prof_data(course_offerings: list[dict], round_ndigits: int) -> dict
                 "terms_taught": [
                     [course_offering["term"], course_offering["year"]]
                 ],
-                "total_rating": course_offering["instructor_environment"] + course_offering["instructor_engagement"]
+                "total_rating": course_offering["instructor_environment"] + course_offering["instructor_engagement"],
+                "total_reviews": course_offering["num_responses"]
             }
         else:
             profs[prof_name]["num_terms_taught"] += 1
             profs[prof_name]["terms_taught"].append([course_offering["term"], course_offering["year"]])
             profs[prof_name]["total_rating"] += (
                     course_offering["instructor_environment"] + course_offering["instructor_engagement"])
+            profs[prof_name]["total_reviews"] += course_offering["num_responses"]
 
     # compute prof's average rating
     for prof_name in profs:
@@ -256,6 +270,126 @@ def _compute_prof_data(course_offerings: list[dict], round_ndigits: int) -> dict
     return profs
 
 
+def _sorted_profs(profs: dict[str, Any]) -> list[str]:
+    """
+    Returns a list of prof names sorted by their average rating
+
+    >>> profs = {
+    ... "Doe, John": {"average_rating": 4.2, "irrelevant_attribute": 0},
+    ... "Smith, Jane": {"average_rating": 2.0, "irrelevant_attribute": 1},
+    ... "Ipsum, Lorem": {"average_rating": 3.3, "irrelevant_attribute": 2}
+    ... }
+    >>> _sorted_profs(profs)
+    ['Doe, John', 'Ipsum, Lorem', 'Smith, Jane']
+    """
+    prof_name_and_ratings = [(prof_name, profs[prof_name]["average_rating"]) for prof_name in profs]
+    prof_name_and_ratings.sort(key=lambda x: x[1], reverse=True)
+    return [p[0] for p in prof_name_and_ratings]
+
+
+def _compute_historical_offerings(course_offerings: list[dict]) -> list[list[str | int]]:
+    """
+    Returns a list containing the academic terms a course was offered in
+
+    course_offerings is a list of dicts, with each key value pair representing a mapping from column title to
+     row entry in the course eval table that was scraped from
+
+    An academic term is represented as a list of two elements:
+        - the season (a str that's one of Fall/Winter/Summer), and
+        - the year (an int, e.g. 2025)
+
+    Note that a Y course in the Fall/Winter term has season "Winter"
+
+    It is guaranteed that there will be no duplicate terms in the output list
+
+    >>> course_offerings = [
+    ...     {
+    ...         "term": "Fall",
+    ...         "year": 2024
+    ...     },
+    ...     {
+    ...         "term": "Winter",
+    ...         "year": 2024
+    ...     },
+    ...     {
+    ...         "term": "Winter",
+    ...         "year": 2025
+    ...     },
+    ...     {
+    ...         "term": "Summer",
+    ...         "year": 2025
+    ...     },
+    ...     {
+    ...         "term": "Summer",
+    ...         "year": 2025
+    ...     },
+    ... ]
+    >>> _compute_historical_offerings(course_offerings)
+    [['Summer', 2025], ['Winter', 2025], ['Winter', 2024], ['Fall', 2024]]
+    """
+    terms_offered = set()
+
+    # prevent duplicates by adding to a set
+    for offering in course_offerings:
+        terms_offered.add((offering["term"], offering["year"]))
+
+    # a mapping representing the desired sorting order of the seasons (chronologically)
+    season_sort_map = {
+        "Fall": 0,
+        "Winter": 1,
+        "Summer": 2
+    }
+
+    # sort the academic terms from most to least recent
+    result = sorted(list(terms_offered), key=lambda x: (x[1], season_sort_map[x[0]]), reverse=True)
+    result = [list(x) for x in result]
+
+    return result
+
+
+def _compute_summer_offerings(historical_offerings: list[list[str | int]]) -> dict:
+    """
+    Based on the historical offerings of a course, this function computes
+        - the most recent year a summer course was offered
+        - the number of years summer courses were offered
+        - a list of the years in chronological order in which summer courses were offered
+    Returns the above data in a dictionary
+
+    >>> historical_offerings = [['Summer', 2025], ['Winter', 2025], ['Winter', 2024], ['Fall', 2024], ['Summer', 2023]]
+    >>> expected = {
+    ...     "most_recent_year": 2025,
+    ...     "num_years_offered": 2,
+    ...     "years_offered": [2025, 2023],
+    ... }
+    >>> _compute_summer_offerings(historical_offerings) == expected
+    True
+    >>> historical_offerings = []
+    >>> expected = {
+    ...     "most_recent_year": 0,
+    ...     "num_years_offered": 0,
+    ...     "years_offered": [],
+    ... }
+    >>> _compute_summer_offerings(historical_offerings) == expected
+    True
+    """
+    summer_years_offered = {term[1] for term in historical_offerings if term[0] == "Summer"}
+    summer_years_offered_chronological = sorted(list(summer_years_offered), reverse=True)
+
+    if len(summer_years_offered_chronological) == 0:
+        most_recent_year = 0
+    else:
+        most_recent_year = summer_years_offered_chronological[0]
+
+    result = {
+        "most_recent_year": most_recent_year,
+        "num_years_offered": len(summer_years_offered),
+        "years_offered": summer_years_offered_chronological,
+    }
+
+    return result
+
+
+# this is just for fun
 def longest_name(filename) -> str:
     """Returns the prof with the longest full name formatted: 'last, first' """
     with open(filename, "r") as read_file:
@@ -272,20 +406,22 @@ def longest_name(filename) -> str:
     return longest_so_far
 
 if __name__ == "__main__":
+    group_by_course_code([
+        "computer_science.csv",
+        "economics.csv",
+        "mathematics.csv",
+        "physics.csv",
+        "statistical_sciences.csv",
+    ], "course_data.json")
+    compute("course_data.json", "course_data_computed.json")
+
     # group_by_course_code([
-    #     "computer_science.csv",
-    #     "economics.csv",
-    #     "mathematics.csv",
-    #     "physics.csv",
-    #     "statistical_sciences.csv",
+    #     "demo.csv"
     # ], "course_data.json")
-    #
+    # compute("course_data.json", "course_data_computed.json")
+
     # print(longest_name("course_data.json"))
     #
     # print(len("AbdELRazek Mansour AbdELKader, Mohamed"))
     # print(len("Brando Albino Galvao de Sousa, Bernardo"))
 
-    group_by_course_code([
-        "demo.csv"
-    ], "course_data.json")
-    compute("course_data.json", "course_data_computed.json")
