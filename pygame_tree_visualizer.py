@@ -410,6 +410,7 @@ def display_multiline_text(text_type: str, text: str, position: tuple[int, int],
     num_lines_to_display = min(max_lines, num_lines)
     for i in range(num_lines_to_display):  # max of 13 lines
         line = wrapped_lines[i]
+        font.render("Testing :)", True, (0,0,0))
         text_surface = font.render(line, True, color)
         ui_screen.blit(text_surface, (text_x, text_y))
         text_y += text_surface.get_height() + line_spacing
