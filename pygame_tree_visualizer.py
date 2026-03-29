@@ -1,7 +1,9 @@
 # Tree class
 from __future__ import annotations
 from typing import Callable
-
+import textwrap
+import webbrowser
+import link_of_course
 from pygame.examples.scroll import zoom_factor
 
 from academic_calendar_reader import PrerequisiteTreeLoader
@@ -12,12 +14,13 @@ from course_tree import CourseTree
 
 #TODO: make it so that when info pannel is open than the search doesnt work
 # make all the new code more clean, ask for code practice feedback, add comments
+# missing tpye anotations
 # ---------------------------------------------------------------------
 # ---------------------------------------------------------------------
 # TREE VISUALIZATION HELPER FUNCTIONS
 # ---------------------------------------------------------------------
 # ---------------------------------------------------------------------
-def draw_node(display_val: str, x_pos: int, y_pos: int, screen_zoom_factor: int,
+def draw_node(display_vals: tuple[str | None, str], x_pos: int, y_pos: int, screen_zoom_factor: int,
               node_course_code_map: list[tuple[pygame.Rect, str]]):
     """
     Draw a node on point (x_pos, y_pos) with text, display_val
@@ -28,10 +31,13 @@ def draw_node(display_val: str, x_pos: int, y_pos: int, screen_zoom_factor: int,
     rect_width = int(200 * screen_zoom_factor)
     rect_height = int(50 * screen_zoom_factor)
 
+    COURSE_CODE_INDEX = 0
+    COURSE_MARK_INDEX = 1
+
     node = pygame.Rect(x_pos, y_pos, rect_width, rect_height)
 
     # adding node to a tuple list that maps node with course code (display_val)
-    node_course_code_map.append((node, display_val))
+    node_course_code_map.append((node, display_vals[COURSE_CODE_INDEX]))
 
     # Drawing rect to screen
     pygame.draw.rect(screen,
@@ -42,7 +48,8 @@ def draw_node(display_val: str, x_pos: int, y_pos: int, screen_zoom_factor: int,
     # Creating the node text
     font_size = max(12, int(24 * screen_zoom_factor))
     node_font = pygame.font.Font("FjallaOne-Regular.ttf", font_size)
-    text_img = node_font.render(display_val, True, [0, 0, 0])
+    text_to_display = display_vals[COURSE_CODE_INDEX] + " " + display_vals[COURSE_MARK_INDEX]
+    text_img = node_font.render(text_to_display, True, [0, 0, 0])
     text_rect = text_img.get_rect()
 
     # displaying the node text
@@ -68,7 +75,7 @@ def draw_tree_visualization(tree: CourseTree, x_pos: int, y_pos: int, spacing_fa
     if tree.is_empty():
         return
     else:
-        draw_node(tree.get_graded_code(), x_pos, y_pos, zoom_factor, node_course_code_map)
+        draw_node((tree.get_root(), tree.get_grade_requirement()), x_pos, y_pos, zoom_factor, node_course_code_map)
         total_spacing = tree_width(tree) * spacing_factor * zoom_factor
         start_x_pos = x_pos - total_spacing // 2  # center children under parent
 
@@ -241,10 +248,21 @@ class TreeCamera:
                     if displacement_x < 2 and displacement_y < 2:
                         print(self.code_clicked)
                         self.course_info_box.is_enabled = True
+                        self.update_info_box()
                     self.code_clicked = None
 
     def reset_camera(self):
         self.__init__(self.course_info_box)
+
+    def update_info_box(self) -> None:
+        selected_course_code = self.code_clicked
+        course_title, description = loader.get_name_and_description(self.code_clicked)
+        course_quality_score = 0
+        assessment_score = 0
+        workload_score = 0
+        number_of_reviews = 0
+        prof_ranking = []
+        self.course_info_box.update_information(selected_course_code, course_title,description,course_quality_score,assessment_score,workload_score,number_of_reviews)
 
 
 # TODO: can I use button class in text field
@@ -289,6 +307,7 @@ class Button:
 class VisualizerInfoBox:
     x_pos: int
     y_pos: int
+    course_code: str
     course_title: str
     course_description: str
     quality_score: int
@@ -297,12 +316,13 @@ class VisualizerInfoBox:
     number_of_reviews: int
     is_enabled: bool
     is_open: bool
-    background_image: pygame.Surface
-    button: Button
+    images: list[pygame.Surface]
+    buttons: list[Button]
 
     def __init__(self, x_pos: int, y_pos: int):
         self.course_title = ""
         self.course_description = ""
+        self.selected_course_code = ""
         self.quality_score = -1
         self.workload_score = -1
         self.assessment_score = -1
@@ -311,10 +331,17 @@ class VisualizerInfoBox:
         self.is_open = False
         self.x_pos = x_pos
         self.y_pos = y_pos
-        self.background_image = pygame.transform.smoothscale(pygame.image.load("info_box_course_compass.png"), (453, 750))
-        self.button = Button((x_pos+45, y_pos), (x_pos+350, y_pos+45), self.when_clicked)
-    def update_information(self, course_title: str, course_description: str, quality_score: int, workload_score: int,
+        background_image = pygame.transform.smoothscale(pygame.image.load("info_panel_course_compass_v2.png"), (453, 750))
+        filled_star_image = pygame.transform.smoothscale(pygame.image.load(
+            "ui_star_course_compass.png"), (30, 30))
+        self.images = [background_image,filled_star_image]
+        panel_open_button = Button((x_pos + 45, y_pos), (x_pos + 350, y_pos + 45), self.change_state)
+        read_more_button = Button((159,393), (318, 414), self.read_more)
+        self.buttons = [panel_open_button,read_more_button]
+
+    def update_information(self, selected_course_code: str, course_title: str, course_description: str, quality_score: int, workload_score: int,
                            assessment_score: int, number_of_reviews: int):
+        self.selected_course_code = selected_course_code
         self.course_title = course_title
         self.course_description = course_description
         self.quality_score = quality_score
@@ -322,23 +349,70 @@ class VisualizerInfoBox:
         self.assessment_score = assessment_score
         self.number_of_reviews = number_of_reviews
     def handle_interaction(self, ui_event: pygame.event.Event):
-        self.button.handle_interaction(ui_event)
-    def when_clicked(self):
+        for button in self.buttons:
+            button.handle_interaction(ui_event)
+    def change_state(self):
         if self.is_enabled:
             if self.is_open:
                 self.is_open = False
             else:
                 self.is_open = True
-
+    def read_more(self):
+        if self.is_enabled and self.is_open:
+            webbrowser.open(link_of_course.course_link_generate(self.selected_course_code))
     def update_visually(self, ui_screen):
         if self.is_enabled and self.is_open:
-            ui_screen.blit(self.background_image, (self.x_pos, self.y_pos))
-            self.button.rect.topleft = (self.x_pos+45, self.y_pos)
+            ui_screen.blit(self.images[0], (self.x_pos, self.y_pos))
+            self.buttons[0].rect.topleft = (self.x_pos+45, self.y_pos)
+            font_text = pygame.font.Font("RobotoMono-VariableFont_wght.ttf", 12)
+            font_heading = pygame.font.Font("FjallaOne-Regular.ttf", 25)
+
+            #visual elements of being open:
+            #heading
+            heading_x = self.x_pos + 40
+            heading_y = self.y_pos + 60
+            display_multiline_text("Heading", self.course_title,(heading_x, heading_y), font_heading, ui_screen)
+            #body text
+            text_x = self.x_pos + 40
+            text_y = self.y_pos + 140
+            display_multiline_text("Body", self.course_description,(text_x, text_y), font_text, ui_screen)
+            #rate my prof scores:
+            for i in range(5):
+                ui_screen.blit(self.images[1],(261 + 36*i, 449))
 
         elif self.is_enabled and not self.is_open:
-            ui_screen.blit(self.background_image, (self.x_pos, self.y_pos + 700))
-            self.button.rect.topleft = (self.x_pos+45, self.y_pos + 700)
-
+            ui_screen.blit(self.images[0], (self.x_pos, self.y_pos + 700))
+            self.buttons[0].rect.topleft = (self.x_pos+45, self.y_pos + 700)
+# def score_visualizer() -> None:
+#     for i in range(5):
+#         #TODO: pass image, ui screen
+#         #ui_screen.blit(self.images[1], (261 + 36 * i, 449))
+def display_multiline_text(text_type: str, text: str, position: tuple[int, int], font: pygame.font.Font, ui_screen) -> None:
+    #TODO: make considtion s.t. text type can only be body or heading
+    if text_type == "Heading":
+        max_lines = 2
+        max_chars_per_line = 38
+        color = (35,68,119)
+    else:
+        max_lines = 13
+        max_chars_per_line = 55
+        color = (0,0,0)
+    text_x = position[0]
+    text_y = position[1]
+    # setting
+    line_spacing = 0.5
+    # text wrap
+    wrapped_lines = textwrap.wrap(text, width=max_chars_per_line)
+    num_lines = len(wrapped_lines)
+    # text drawed
+    if num_lines == 1 and text_type == "Heading":
+        text_y += 15
+    num_lines_to_display = min(max_lines, num_lines)
+    for i in range(num_lines_to_display):  # max of 13 lines
+        line = wrapped_lines[i]
+        text_surface = font.render(line, True, color)
+        ui_screen.blit(text_surface, (text_x, text_y))
+        text_y += text_surface.get_height() + line_spacing
 
 
 
@@ -415,7 +489,7 @@ if __name__ == '__main__':
             tree_camera.handle_interaction(event)
             main_screen_ui.handle_event(event)
             # uncomment below for dev mode
-            # dev_mode_event = event
+            dev_mode_event = event
             # TEMPORARLY uses enter key to take input from search bar, eventually this will be a button
             # TODO: error check input
             if event.type == pygame.KEYDOWN:
@@ -433,9 +507,11 @@ if __name__ == '__main__':
                                         tree_camera.node_course_code_map)
             screen.blit(tree_visualizer_page, (0, 0))
 
-            # uncomment below for dev mode
-            # ui_dev_mode(screen, dev_mode_event)
+
             main_screen_ui.update_visually(screen)
-            info_box.button.draw_button_for_debugging(screen)
+            for button in info_box.buttons:
+                button.draw_button_for_debugging(screen)
+            # uncomment below for dev mode
+            ui_dev_mode(screen, dev_mode_event)
         pygame.display.flip()
     pygame.quit()

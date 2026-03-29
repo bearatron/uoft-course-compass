@@ -2,7 +2,7 @@ def course_link_generate(course_name: str) -> str:
     """
     This function takes in the name of the given course and returns a string that is a link to the website
     """
-    return f"https://artsci.calendar.utoronto.ca/course/{course_name}"
+    return f"https://artsci.calendar.utoronto.ca/course/{course_name.lower()}"
 
 def program_link_generate(program_name: str) -> str:
     """

@@ -53,16 +53,16 @@ class CourseTree:
         """Set the subtrees attribute of the Course Tree to the provided subtrees"""
         self._subtrees = subtrees
 
-    def get_root(self) -> Optional[Any]:
+    def get_root(self) -> Optional[str]:
         """Return the root of the Course Tree"""
         return self._root
 
-    def get_graded_code(self) -> str:
+    def get_grade_requirement(self) -> str:
         """Return the course code of the Course Tree with the grade requirement if applicable"""
         if self._required_grade == -1:
-            return str(self._root)
+            return ""
         else:
-            return f'{self._root} ({self._required_grade}%)'
+            return f'({self._required_grade}%)'
 
     def get_course_leaves(self) -> list[CourseTree]:
         """Return all the leaves of the Course Tree"""
