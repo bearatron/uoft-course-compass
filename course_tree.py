@@ -177,8 +177,11 @@ class CourseTree:
             if all(subtree.is_empty() for subtree in self._subtrees):
                 return CourseTree(None, -1, [])
             # Otherwise, return the current tree with empty subtrees removed
+            # Also, we simplify the tree if it only has one subtree
             else:
                 self._remove_empty_subtrees()
+                if len(self._subtrees) == 1:
+                    return self._subtrees[0]
                 return self
 
         elif self._root == 'CHOOSE':
@@ -186,7 +189,10 @@ class CourseTree:
             if any(subtree.is_empty() for subtree in self._subtrees):
                 return CourseTree(None, -1, [])
             # Otherwise, return the current tree
+            # Also, we simplify the tree if it only has one subtree
             else:
+                if len(self._subtrees) == 1:
+                    return self._subtrees[0]
                 return self
 
         else:  # self._root is a course
