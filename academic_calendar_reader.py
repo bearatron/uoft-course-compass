@@ -44,17 +44,17 @@ def _is_at_end(prerequisite_string: str, i: int) -> bool:
     return False
 
 
-def _get_current_and_previous_token(prerequisite_string: str, sanitized: str, i: int) -> tuple[str, str, int]:
+def _get_curr_and_prev_token(prerequisite_string: str, sanitized: str, i: int) -> tuple[str, str, int]:
     """Given the prerequisite string and the current sanitized version so far, return a tuple containing what the
     current and previous token types are, and the length of the current token in that order.
     Each token is one of {'/', ',', '(', ')', 'CODE', 'START', ''}.
     The length of each token is 1, except the length for 'CODE' is 8.
 
-    >>> _get_current_and_previous_token('Prerequisites: CSC110Y1/CSC111H1', '', 15)
+    >>> _get_curr_and_prev_token('Prerequisites: CSC110Y1/CSC111H1', '', 15)
     ('CODE', 'START', 8)
-    >>> _get_current_and_previous_token('Prerequisites: CSC110Y1/CSC111H1', '', 0)
+    >>> _get_curr_and_prev_token('Prerequisites: CSC110Y1/CSC111H1', '', 0)
     ('', 'START', 1)
-    >>> _get_current_and_previous_token('Prerequisites: CSC110Y1/CSC111H1', 'CSC110Y1', 23)
+    >>> _get_curr_and_prev_token('Prerequisites: CSC110Y1/CSC111H1', 'CSC110Y1', 23)
     ('/', 'CODE', 1)
     """
     # Determine what the current token is
@@ -100,17 +100,17 @@ def _search_for_grade(prerequisite_string: str, i: int) -> int:
     >>> _search_for_grade('... /PHY152H1/ ...', 5)
     -1
     """
-
     # Determine the location of the previous connective in the prerequisite string, determined by the index i
     previous_connective_index = prerequisite_string.replace(',', '/').rfind('/', 0, i)
     if previous_connective_index == -1:
         # No previous connective was found, so the starting search location is the start of the string
         previous_connective_index = 0
+
     # Determine the location of the next connective in the prerequisite string, determined by the index i
     next_connective_index = prerequisite_string.replace(',', '/').find('/', i)
     if next_connective_index == -1:
         # No next connective was found, so the ending search location is the end of the string
-        next_connective_index = len(prerequisite_string)  # we don't subtract one because of reasons
+        next_connective_index = len(prerequisite_string)
 
     # Determine the location of a percent between the previous_ and next_connective_index
     percent_index = prerequisite_string.find('%', previous_connective_index, next_connective_index)
@@ -158,34 +158,38 @@ def _sanitize_prerequisites(prerequisite_string_raw: str) -> str:
             break
 
         # Get the current token and the previous token that was parsed, and the length of the current token
-        current, previous, length_of_current = _get_current_and_previous_token(prerequisite_string, sanitized, index)
+        current, previous, length_of_current = _get_curr_and_prev_token(prerequisite_string, sanitized, index)
 
-        if current != '':
-            # The current token is valid, so we check if it can follow the previous token
-            if previous in CAN_PRECEDE[current]:
-                # The current token can follow the previous token, so we add it to the sanitized string
-                if current == 'CODE':
-                    # Get the associated course's grade requirement (with the raw string for the reason described above)
-                    grade_requirement = _search_for_grade(prerequisite_string_raw, index)
+        if current == '':
+            # The current token is invalid, so we continue on to the next iteration
+            index += length_of_current
+            continue
 
-                    # Generate the properly formatted course code and append it to the sanitized string
-                    course_code = f'{prerequisite_string[index:index + 8]}[{grade_requirement}]'
-                    sanitized += course_code
-                else:
-                    # The current token is not a course code so we just add it as is
-                    sanitized += current
+        # The current token is valid, so we check if it can follow the previous token
+        if previous in CAN_PRECEDE[current]:
+            # The current token can follow the previous token, so we add it to the sanitized string
+            if current == 'CODE':
+                # Get the associated course's grade requirement (with the raw string for the reason described above)
+                grade_requirement = _search_for_grade(prerequisite_string_raw, index)
+
+                # Generate the properly formatted course code and append it to the sanitized string
+                course_code = f'{prerequisite_string[index:index + 8]}[{grade_requirement}]'
+                sanitized += course_code
             else:
-                # The current token cannot follow the previous token, so we do not necessarily add it. There are two
-                # special cases we must handle:
-                # Case 1: If the current token is an open bracket, we must skip to the matching closed bracket because
-                # nothing in between belongs
-                if current == "(":
-                    index = prerequisite_string.find(")", index)
+                # The current token is not a course code so we just add it as is
+                sanitized += current
+        else:
+            # The current token cannot follow the previous token, so we do not necessarily add it. There are two
+            # special cases we must handle:
+            # Case 1: If the current token is an open bracket, we must skip to the matching closed bracket because
+            # nothing in between belongs
+            if current == "(":
+                index = prerequisite_string.find(")", index)
 
-                # Case 2: if the current token is a comma and the previous token is a slash, then the comma
-                # takes precendent over the slash
-                if current == "," and previous == "/":
-                    sanitized = sanitized[:-1] + current
+            # Case 2: if the current token is a comma and the previous token is a slash, then the comma
+            # takes precendent over the slash
+            if current == "," and previous == "/":
+                sanitized = sanitized[:-1] + current
 
         # Increment the index for the next iteration by the length of the current token
         index += length_of_current
@@ -252,7 +256,8 @@ def _remove_extra_connectives(prerequisite_string: str) -> str:
 
     >>> _remove_extra_connectives('MAT137Y1//CSC111H1')
     'MAT137Y1/CSC111H1'
-    >>> _remove_extra_connectives()
+    >>> _remove_extra_connectives('MAT137Y1,CSC111H1,')
+    'MAT137Y1,CSC111H1'
     """
     if prerequisite_string != "":
         index = len(prerequisite_string) - 1
@@ -288,17 +293,16 @@ def _remove_extra_connectives(prerequisite_string: str) -> str:
                 continue
 
             # There should be no connectives adjacent to one another (we don't check next because we are looping back)
-            if prev_char in {',', '/'}:
-                if prev_char == ',':
-                    # The previous character takes priority so we remove the current character
-                    prerequisite_string = prerequisite_string[:index] + prerequisite_string[index + 1:]
-                    index -= 1
-                    continue
-                else:
-                    # Since the previous character doesn't take priority we can remove it and keep the current character
-                    prerequisite_string = prerequisite_string[:index - 1] + prerequisite_string[index:]
-                    index -= 1
-                    continue
+            if prev_char == ',':
+                # The previous character takes priority so we remove the current character
+                prerequisite_string = prerequisite_string[:index] + prerequisite_string[index + 1:]
+                index -= 1
+                continue
+            elif prev_char == '/':
+                # Since the previous character doesn't take priority we can remove it and keep the current character
+                prerequisite_string = prerequisite_string[:index - 1] + prerequisite_string[index:]
+                index -= 1
+                continue
 
             index -= 1
 
@@ -306,8 +310,11 @@ def _remove_extra_connectives(prerequisite_string: str) -> str:
 
 
 def load_course_information(program: str) -> tuple[dict[str, str], dict[str, tuple[str, str]]]:
-    """Return a dictionary mapping course codes to their properly formatted prerequisite strings for all courses in the
-    specified program  # TODO: UPDATE DOSCTRINGS AND STUFF
+    """Return a tuple of two dictionaries: one mapping course codes to their properly formatted prerequisite strings for
+    all courses in the specified program, the other mapping course codes to their full name and description
+
+    Preconditions:
+        - program is the name of a program on the U of T Academic Calendar
     """
     page_count = _get_number_of_pages(program)
     prerequisite_dictionary = {}
@@ -324,16 +331,16 @@ def load_course_information(program: str) -> tuple[dict[str, str], dict[str, tup
         soup = BeautifulSoup(webpage.text, features='html.parser')
 
         # Find the section of the html corresponding to the list of courses on the current page
-        course_menu = soup.find('div', class_='view-content')
-        course_divs = course_menu.find_all('div', class_='views-row', recursive=False)
+        course_divs = soup.find('div', class_='view-content') \
+            .find_all('div', class_='views-row', recursive=False)
         # Loop through each course in the list of courses on the current page
         for course_div in course_divs:
             # Extract the course code and name
             course_name = course_div.find('div', attrs={'aria-label': True}).text.strip()
             course_code = course_name[0:8]
             # Extract the course description
-            description_div = course_div.find('div', class_='views-field views-field-body')
-            description = description_div.find('div', class_='field-content').text
+            description = course_div.find('div', class_='views-field views-field-body') \
+                .find('div', class_='field-content').text
 
             # Extract the prerequisite string
             prerequisite_span = course_div.find('span', class_='views-field views-field-field-prerequisite')
@@ -341,8 +348,6 @@ def load_course_information(program: str) -> tuple[dict[str, str], dict[str, tup
                 # A list of prerequisites was found for the current course, so extract and sanitize the data
                 prerequisites = prerequisite_span.find('span', class_='field-content').text
                 prerequisites = _sanitize_prerequisites(prerequisites)
-                if prerequisites == '':
-                    prerequisites = ''
             else:
                 # No prerequistes were found for the given course
                 prerequisites = ''
@@ -397,55 +402,85 @@ def convert_to_tree(prerequisite_dict: dict[str, str]) -> dict[str, CourseTree]:
 
 
 class CourseNotFoundError(Exception):
-    """Docstring"""
-    #TODO: I need a str method or smth idk
-    pass
+    """Exception raised when attempting to access information about a non-existent course"""
+    def __str__(self) -> str:
+        """Return a string representation of this error."""
+        return 'The course you are trying to access does not exist'
 
 
 class PrerequisiteTreeLoader:
-    """docstring"""
-    prerequisite_trees: dict[str, CourseTree]
-    course_information: dict[str, tuple[str, str]]
+    """A class for loading information about courses from the Academic Calendar
+    """
+    # Private Instance Attributes:
+    #   - _prerequisite_strings:
+    #       The dictionary mapping course codes to their corresponding prerequisite strings
+    #   - _prerequisite_trees:
+    #       The dictionary mapping course codes to their corresponding prerequisite trees
+    #   - _course_information:
+    #       The dictionary mapping course codes to their corresponding full titles and descriptions
+    _prerequisite_strings: dict[str, CourseTree]
+    _prerequisite_trees: dict[str, CourseTree]
+    _course_information: dict[str, tuple[str, str]]
 
-    def __init__(self, programs: list[str]):
-        prerequisite_strings: dict[str, str] = {}
-        self.prerequisite_trees = {}
-        self.course_information = {}
+    def __init__(self, programs: list[str]) -> None:
+        """The initializer method for PrerequisiteTreeLoader
+
+        Preconditions:
+            - Every program in programs is a program in the Academic Calendar
+        """
+        # Initialize the dictionaries used to store course information
+        prerequisite_strings = {}
+        self._prerequisite_trees = {}
+        self._course_information = {}
+
+        # Loop through every provided program and load the corresponding information for that program
         for program in programs:
             prerequisite_dictionary, information_dictionary = load_course_information(program)
             prerequisite_strings.update(prerequisite_dictionary)
-            self.prerequisite_trees.update(convert_to_tree(prerequisite_strings))
-            self.course_information.update(information_dictionary)
 
-        for course_code in self.prerequisite_trees:
-            course_tree = self.prerequisite_trees[course_code]
+            # Update the dictionaries to contain the new information
+            self._prerequisite_trees.update(convert_to_tree(prerequisite_strings))
+            self._course_information.update(information_dictionary)
+
+        # Loop through every course and recursively add on prerequisites of prerequisites, etc.
+        for course_code in self._prerequisite_trees:
+            course_tree = self._prerequisite_trees[course_code]
             leaves = course_tree.get_course_leaves()
             for leaf in leaves:
-                if leaf.get_root() in self.prerequisite_trees:
-                    leaf.set_subtrees(self.prerequisite_trees[leaf.get_root()].get_subtrees())
+                if leaf.get_root() in self._prerequisite_trees:
+                    leaf.set_subtrees(self._prerequisite_trees[leaf.get_root()].get_subtrees())
 
     def get_prerequisite_tree(self, course_code: str) -> CourseTree:
-        """docstring"""
-        if course_code not in self.prerequisite_trees:
+        """Return the prerequisite tree that corresponds to the given course_code
+        """
+        if course_code not in self._prerequisite_trees:
             raise CourseNotFoundError
-        return self.prerequisite_trees[course_code]
+
+        return self._prerequisite_trees[course_code]
 
     def get_prerequisite_trees(self) -> dict[str, CourseTree]:
-        """docstring"""
-        return self.prerequisite_trees.copy()
+        """Return all the prerequisite trees stored in this Loader
+        """
+        return self._prerequisite_trees.copy()
 
     def get_simplified_tree(self, course_code: str, courses_taken: dict[str, int]) -> CourseTree:
-        """Docstring"""
-        if course_code not in self.prerequisite_trees:
+        """Return the prerequisite tree that corresponds to the given course_code, simplified based on the courses_taken
+        """
+        if course_code not in self._prerequisite_trees:
             raise CourseNotFoundError
-        # we must copy so things don't go wrong
-        return self.prerequisite_trees[course_code].copy().simplify_tree(courses_taken)
+
+        # Get a copy of the prerequisite tree correpsonding to the given course code
+        prerequisite_tree = self._prerequisite_trees[course_code].copy()
+
+        return prerequisite_tree.simplify_tree(courses_taken)
 
     def get_name_and_description(self, course_code: str) -> tuple[str, str]:
-        """docstring"""
-        if course_code not in self.course_information:
+        """Return the name and description that correspond to the given course_code
+        """
+        if course_code not in self._course_information:
             raise CourseNotFoundError
-        return self.course_information[course_code]
+
+        return self._course_information[course_code]
 
 
 if __name__ == '__main__':
