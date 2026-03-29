@@ -115,6 +115,7 @@ def compute(filename: str, output_filename: str) -> None:
     for course_code in course_data:
         course_offerings = course_data[course_code]
 
+        num_responses = _compute_num_responses(course_offerings)
         num_offerings = len(course_offerings)
         historical_offerings = _compute_historical_offerings(course_offerings)
 
@@ -140,12 +141,14 @@ def compute(filename: str, output_filename: str) -> None:
             "satisfaction": ["overall_satisfaction", "likelihood_to_recommend"]
         }
 
-        average_course_metrics_grouped = _compute_average_metrics_grouped(metrics_grouped, average_course_metrics, round_ndigits)
+        average_course_metrics_grouped = (
+            _compute_average_metrics_grouped(metrics_grouped, average_course_metrics, round_ndigits))
 
         profs = _compute_prof_data(course_offerings, round_ndigits)
         profs_by_rating = _sorted_profs(profs)
 
         computed[course_code] = {
+            "num_responses": num_responses,
             "average_metrics": average_course_metrics_rounded,
             "grouped_metrics": average_course_metrics_grouped,
             "num_offerings": num_offerings,
@@ -168,6 +171,13 @@ def compute(filename: str, output_filename: str) -> None:
 ##########################################
 # Below are helper functions for compute #
 ##########################################
+
+def _compute_num_responses(course_offerings):
+    total_responses = 0
+    for course_offering in course_offerings:
+        total_responses += course_offering["num_responses"]
+    return total_responses
+
 
 def _compute_average_metrics(
         metrics: list[str],
@@ -404,6 +414,7 @@ def longest_name(filename) -> str:
                 longest_so_far = full_name
 
     return longest_so_far
+
 
 if __name__ == "__main__":
     group_by_course_code([
