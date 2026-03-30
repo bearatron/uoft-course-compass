@@ -18,4 +18,4 @@ def program_link_generate(program_name: str) -> str:
         char_index += 1
     edited_program_name = edited_program_name.replace(" ", "-")
 
-    return f"https://artsci.calendar.utoronto.ca/section/{edited_program_name}"
+    return f"https://artsci.calendar.utoronto.ca/section/{edited_program_name.lower()}"
