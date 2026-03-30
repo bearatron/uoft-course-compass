@@ -4,6 +4,7 @@ from typing import Callable
 import textwrap
 import webbrowser
 import link_of_course
+import json
 from pygame.examples.scroll import zoom_factor
 
 from academic_calendar_reader import PrerequisiteTreeLoader
@@ -15,6 +16,7 @@ from course_tree import CourseTree
 #TODO: make it so that when info pannel is open than the search doesnt work
 # make all the new code more clean, ask for code practice feedback, add comments
 # missing tpye anotations
+# Bug with if i click ui, then the behind layer of course tree might also be clicked.
 # ---------------------------------------------------------------------
 # ---------------------------------------------------------------------
 # TREE VISUALIZATION HELPER FUNCTIONS
@@ -222,7 +224,7 @@ class TreeCamera:
             for item in self.node_course_code_map:
                 node = item[0]
                 node_course_code = item[1]
-                if node.collidepoint(event.pos):
+                if node.collidepoint(mouse_event.pos):
                     self.code_clicked = node_course_code
         # the actual mouse dragging movement
         if mouse_event.type == pygame.MOUSEMOTION and self.dragging:
@@ -285,10 +287,10 @@ class Button:
 
     def handle_interaction(self, ui_event: pygame.event.Event) -> None:
         if ui_event.type == pygame.MOUSEBUTTONDOWN and ui_event.button == 1:
-            if self.rect.collidepoint(event.pos):
+            if self.rect.collidepoint(ui_event.pos):
                 self.is_pressed = True
 
-        elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
+        elif ui_event.type == pygame.MOUSEBUTTONUP and ui_event.button == 1:
             if self.is_pressed:
                 self.on_click()
             self.is_pressed = False
@@ -331,7 +333,7 @@ class VisualizerInfoBox:
         self.is_open = False
         self.x_pos = x_pos
         self.y_pos = y_pos
-        background_image = pygame.transform.smoothscale(pygame.image.load("info_panel_course_compass_v2.png"), (453, 750))
+        background_image = pygame.transform.smoothscale(pygame.image.load("info_panel_cc_v3.png"), (453, 750))
         filled_star_image = pygame.transform.smoothscale(pygame.image.load(
             "ui_star_course_compass.png"), (30, 30))
         self.images = [background_image,filled_star_image]
@@ -366,6 +368,7 @@ class VisualizerInfoBox:
             self.buttons[0].rect.topleft = (self.x_pos+45, self.y_pos)
             font_text = pygame.font.Font("RobotoMono-VariableFont_wght.ttf", 12)
             font_heading = pygame.font.Font("FjallaOne-Regular.ttf", 25)
+            font_text_styled =  pygame.font.Font("FjallaOne-Regular.ttf", 12)
 
             #visual elements of being open:
             #heading
@@ -377,16 +380,36 @@ class VisualizerInfoBox:
             text_y = self.y_pos + 140
             display_multiline_text("Body", self.course_description,(text_x, text_y), font_text, ui_screen)
             #rate my prof scores:
-            for i in range(5):
-                ui_screen.blit(self.images[1],(261 + 36*i, 449))
+            with open("course_evals_parser/course_data_computed.json", "r") as file:
+                data = json.load(file)
+            course_quality = data[self.selected_course_code]["grouped_metrics"]["course_quality"]
+            workload = data[self.selected_course_code]["grouped_metrics"]["workload"]
+            assessment_quality = data[self.selected_course_code]["grouped_metrics"]["assessment_quality"]
+            score_visualizer(round(course_quality), 449, self.images[1], ui_screen)
+            score_visualizer(round(workload), 513, self.images[1], ui_screen)
+            score_visualizer(round(assessment_quality), 588, self.images[1], ui_screen)
+            top_3_profs = data[self.selected_course_code]["profs_by_rating"][:3]
+            for i in range(len(top_3_profs)):
+                name = trim_name(top_3_profs[i], 30)
+                text_surface = font_text_styled.render(name, True, (35,68,119))
+                ui_screen.blit(text_surface, (275, 652 + i*18))
+            #num_reviews
+            reviews_border_rect = pygame.Rect(171, 726, 307 - 171, 733 - 726)
+            num_reviews = data[self.selected_course_code]["num_responses"]
+            text_surface = font_text.render(str(num_reviews) + " reviews", True, (0, 0, 0))
+            text_rect = text_surface.get_rect(center=reviews_border_rect.center)
+            ui_screen.blit(text_surface, text_rect)
+
 
         elif self.is_enabled and not self.is_open:
             ui_screen.blit(self.images[0], (self.x_pos, self.y_pos + 700))
             self.buttons[0].rect.topleft = (self.x_pos+45, self.y_pos + 700)
-# def score_visualizer() -> None:
-#     for i in range(5):
-#         #TODO: pass image, ui screen
-#         #ui_screen.blit(self.images[1], (261 + 36 * i, 449))
+
+def score_visualizer(score: int, y_pos: int, star_image, ui_screen) -> None:
+    if score <= 5:
+        for i in range(score):
+            ui_screen.blit(star_image, (261 + 36 * i, y_pos))
+    #todo:raise error
 def display_multiline_text(text_type: str, text: str, position: tuple[int, int], font: pygame.font.Font, ui_screen) -> None:
     #TODO: make considtion s.t. text type can only be body or heading
     if text_type == "Heading":
@@ -407,6 +430,17 @@ def display_multiline_text(text_type: str, text: str, position: tuple[int, int],
     # text drawed
     if num_lines == 1 and text_type == "Heading":
         text_y += 15
+    if num_lines > max_lines:
+        wrapped_lines = textwrap.wrap(str(text), width=max_chars_per_line)
+        wrapped_lines = wrapped_lines[:max_lines]
+
+        last_line_words = wrapped_lines[-1].split()
+        if len(last_line_words) > 1:
+            last_line_words.pop()
+            wrapped_lines[-1] = " ".join(last_line_words) + "..."
+        else:
+            wrapped_lines[-1] = wrapped_lines[-1][:max_chars_per_line - 3] + "..."
+
     num_lines_to_display = min(max_lines, num_lines)
     for i in range(num_lines_to_display):  # max of 13 lines
         line = wrapped_lines[i]
@@ -415,7 +449,11 @@ def display_multiline_text(text_type: str, text: str, position: tuple[int, int],
         text_y += text_surface.get_height() + line_spacing
 
 
-
+def trim_name(name: str, max_length: int) -> str:
+    name = name.split(",")[0] #takes last name only
+    if len(name) > max_length:
+        return name[:max_length - 3] + "..."
+    return name
 
 def ui_dev_mode(ui_screen, ui_event):
     # TODO:delete this before final submission
@@ -509,8 +547,8 @@ if __name__ == '__main__':
 
 
             main_screen_ui.update_visually(screen)
-            for button in info_box.buttons:
-                button.draw_button_for_debugging(screen)
+            # for button in info_box.buttons:
+            #     button.draw_button_for_debugging(screen)
             # uncomment below for dev mode
             ui_dev_mode(screen, dev_mode_event)
         pygame.display.flip()
