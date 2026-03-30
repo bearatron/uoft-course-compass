@@ -152,7 +152,9 @@ class CourseTree:
             return str_so_far
 
     def _course_completed(self, courses_taken: dict[str, int]) -> bool:
-        """Docstring"""
+        """Return whether the course at the root of this tree has been completed with a high enough grade, based on the
+        courses taken that were passed in
+        """
         for course in courses_taken:
             grade = courses_taken[course]
             if course == self._root and grade >= self._required_grade:
@@ -161,13 +163,16 @@ class CourseTree:
         return False
 
     def _remove_empty_subtrees(self) -> None:
-        """Docstring"""
+        """Remove any empty subtrees from this tree
+        """
         for i in range(len(self._subtrees) - 1, -1, -1):
             if self._subtrees[i].is_empty():
                 self._subtrees.pop(i)
 
     def simplify_tree(self, courses_taken: dict[str, int]) -> CourseTree:
-        """Docstring"""
+        """Simplify the current course tree based on the courses taken that were passed in, with the method described
+        in the project report
+        """
         # Simplify subtrees
         for i in range(len(self._subtrees)):
             self._subtrees[i] = self._subtrees[i].simplify_tree(courses_taken)
@@ -205,7 +210,8 @@ class CourseTree:
                 return self
 
     def copy(self) -> CourseTree:
-        """Dosctring"""
+        """Return a copy of this course tree
+        """
         copied_tree = CourseTree(self._root, self._required_grade, [subtree.copy() for subtree in self._subtrees])
         return copied_tree
 
