@@ -7,7 +7,7 @@ import link_of_course
 import json
 from pygame.examples.scroll import zoom_factor
 
-from academic_calendar_reader import PrerequisiteTreeLoader
+from academic_calendar_reader import PrerequisiteTreeLoader, CourseNotFoundError
 from dataclasses import dataclass
 from typing import Any, Optional
 import pygame
@@ -258,7 +258,16 @@ class TreeCamera:
 
     def update_info_box(self) -> None:
         selected_course_code = self.code_clicked
-        course_title, description = loader.get_name_and_description(self.code_clicked)
+        # TODO: Hi Shayan, I added this march 29 8:40 pm  - Jacob
+        try:
+            course_title, description = loader.get_name_and_description(self.code_clicked)
+        except CourseNotFoundError:
+            # Check if the info box is currently not displaying anything
+            if self.course_info_box.course_title == "":
+                # The info box is not displaying anything, so it shouldn't pop up (sorry you can rewrite these
+                # comments lol they're trash idk how your code works
+                self.course_info_box.is_enabled = False
+            return
         course_quality_score = 0
         assessment_score = 0
         workload_score = 0
@@ -515,7 +524,8 @@ if __name__ == '__main__':
     course_tree = None
 
     programs = ["Computer Science", "Mathematics"]
-    loader = PrerequisiteTreeLoader(programs)
+    loader = PrerequisiteTreeLoader()
+    loader.load_from_file("prerequisite_tree_save_data.json")
     # ---------------------------------------------------------------------
     # MAIN LOOP
     # ---------------------------------------------------------------------

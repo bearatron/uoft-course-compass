@@ -4,7 +4,8 @@ from academic_calendar_reader import PrerequisiteTreeLoader
 
 if __name__ == "__main__":
     programs = ["Computer Science", "Mathematics"]
-    loader = PrerequisiteTreeLoader(programs)
+    loader = PrerequisiteTreeLoader()
+    loader.load_from_file("prerequisite_tree_save_data.json")
     courses_taken = {
         'MAT137Y1': 100,
         'CSC110Y1': 100,

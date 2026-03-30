@@ -2,6 +2,7 @@
 
 from bs4 import BeautifulSoup
 import requests
+import json
 
 from course_tree import CourseTree
 import string_methods
@@ -418,28 +419,29 @@ class PrerequisiteTreeLoader:
     #       The dictionary mapping course codes to their corresponding prerequisite trees
     #   - _course_information:
     #       The dictionary mapping course codes to their corresponding full titles and descriptions
-    _prerequisite_strings: dict[str, CourseTree]
+    _prerequisite_strings: dict[str, str]
     _prerequisite_trees: dict[str, CourseTree]
     _course_information: dict[str, tuple[str, str]]
 
-    def __init__(self, programs: list[str]) -> None:
-        """The initializer method for PrerequisiteTreeLoader
+    def __init__(self) -> None:
+        # Initialize the dictionaries used to store course information
+        self._prerequisite_strings = {}
+        self._prerequisite_trees = {}
+        self._course_information = {}
+
+    def load_from_programs(self, programs: list[str]) -> None:
+        """Load information and generate a prerequisite tree for every course in the given programs
 
         Preconditions:
             - Every program in programs is a program in the Academic Calendar
         """
-        # Initialize the dictionaries used to store course information
-        prerequisite_strings = {}
-        self._prerequisite_trees = {}
-        self._course_information = {}
-
         # Loop through every provided program and load the corresponding information for that program
         for program in programs:
             prerequisite_dictionary, information_dictionary = load_course_information(program)
-            prerequisite_strings.update(prerequisite_dictionary)
+            self._prerequisite_strings.update(prerequisite_dictionary)
 
             # Update the dictionaries to contain the new information
-            self._prerequisite_trees.update(convert_to_tree(prerequisite_strings))
+            self._prerequisite_trees.update(convert_to_tree(self._prerequisite_strings))
             self._course_information.update(information_dictionary)
 
         # Loop through every course and recursively add on prerequisites of prerequisites, etc.
@@ -481,6 +483,42 @@ class PrerequisiteTreeLoader:
             raise CourseNotFoundError
 
         return self._course_information[course_code]
+
+    def save_to_file(self, file_name: str) -> None:
+        """Save all the data to a json file to be reloaded at a later time
+
+        Preconditions:
+            - file_name is a valid json file name
+        """
+        save_data = {
+            "course_information": self._course_information,
+            "prerequisite_strings": self._prerequisite_strings
+        }
+        with open(file_name, "w") as f:
+            json.dump(save_data, f, indent=4)
+
+    def load_from_file(self, file_name: str) -> None:
+        """Load all data from a json file
+
+        Preconditions:
+            - file_name is a valid json file name corresponding to a file with properly formatted data
+        """
+        with open(file_name, "r") as f:
+            save_data = json.load(f)
+
+        self._course_information = save_data["course_information"]
+        self._prerequisite_strings = save_data["prerequisite_strings"]
+
+        # Load prerequisite trees from all prerequisite strings
+        self._prerequisite_trees.update(convert_to_tree(self._prerequisite_strings))
+
+        # Loop through every course and recursively add on prerequisites of prerequisites, etc.
+        for course_code in self._prerequisite_trees:
+            course_tree = self._prerequisite_trees[course_code]
+            leaves = course_tree.get_course_leaves()
+            for leaf in leaves:
+                if leaf.get_root() in self._prerequisite_trees:
+                    leaf.set_subtrees(self._prerequisite_trees[leaf.get_root()].get_subtrees())
 
 
 if __name__ == '__main__':
