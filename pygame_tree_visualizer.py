@@ -327,7 +327,7 @@ class Button(UIElement):
                 self.on_click()
             self.is_pressed = False
 
-    def draw_button_for_debugging(self, ui_screen: pygame.Surface) -> None:
+    def show_outline_for_debugging(self, ui_screen: pygame.Surface) -> None:
 
         # Color based on state
         if self.is_pressed:
@@ -437,6 +437,17 @@ class VisualizerInfoBox(UIElement):
             ui_screen.blit(self.images[0], (self.x_pos, self.y_pos + 700))
             self.buttons[0].rect.topleft = (self.x_pos+45, self.y_pos + 700)
 
+
+class SummerOfferingsText(UIElement):
+    def __init__(self):
+        pass
+
+    def handle_interaction(self, ui_event: pygame.event.Event) -> None:
+        pass
+
+    def update_visually(self, ui_screen: pygame.Surface) -> None:
+        pass
+
 def score_visualizer(score: int, y_pos: int, star_image, ui_screen) -> None:
     if score <= 5:
         for i in range(score):
@@ -499,6 +510,20 @@ def add_course_to_list(course_manager_to_update: CourseManager, taken_course_cod
     course_grade = int(course_mark)
     course_manager_to_update.add_course(taken_course_code, course_grade)
 
+def show_summer_offerings(screen):
+    with open("course_data_computed.json", "r") as file:
+        data = json.load(file)
+
+    font_text = pygame.font.Font("RobotoMono-VariableFont_wght.ttf", 12)
+
+    display_multiline_text(
+"paragraph",
+   "This is some test text",
+(531, 85),
+        font_text,
+        screen
+    )
+
 def ui_dev_mode(ui_screen, ui_event):
     # TODO:delete this before final submission
     pygame.mouse.set_visible(False)
@@ -556,12 +581,18 @@ if __name__ == '__main__':
     screen_mode = "course_selection"
 
     main_screen_ui = UIManager()
-
     visualizer_search_field = TextField("Search Course", 30,(98, 29), (418, 73))
     info_box = VisualizerInfoBox(5,25)
-    #course_tree_button = Button((162,277),(315,293),)
+    summer_offering_button = Button(
+        (272, 731),
+        (424, 752),
+        lambda: show_summer_offerings(screen),
+    )
+
     main_screen_ui.add(visualizer_search_field)
     main_screen_ui.add(info_box)
+    main_screen_ui.add(summer_offering_button)
+
     tree_camera = TreeCamera(info_box)
     course_tree = None
 
@@ -615,7 +646,8 @@ if __name__ == '__main__':
             #delete below:
             taken_course_field.show_outline_for_debugging(screen)
             grade_mark_field.show_outline_for_debugging(screen)
-            add_course_button.draw_button_for_debugging(screen)
+            add_course_button.show_outline_for_debugging(screen)
+            add_course_button.show_outline_for_debugging(screen)
             course_list = course_manager.get_courses()
             for i in range(len(course_list)):
                 course_with_mark = course_list[i]
@@ -637,19 +669,25 @@ if __name__ == '__main__':
 
 
         elif screen_mode == "main":
+            font = pygame.font.Font("FjallaOne-Regular.ttf", 12)
+            text = font.render("Hello world", True, (0,0,0))
+
+
             screen.fill((255, 255, 255))
             if course_tree is not None:
                 draw_tree_visualization(course_tree, tree_camera.x_pos_tree,
                                         tree_camera.y_pos_tree, 300, tree_camera.zoom_factor,
                                         tree_camera.node_course_code_map)
             screen.blit(tree_visualizer_page, (0, 0))
+            screen.blit(text, (100, 100))
 
 
             main_screen_ui.update_visually(screen)
+            visualizer_search_field.show_outline_for_debugging(screen)
+            summer_offering_button.show_outline_for_debugging(screen)
             # for button in info_box.buttons:
             #     button.draw_button_for_debugging(screen)
         # uncomment below for dev mode
-        visualizer_search_field.show_outline_for_debugging(screen)
         ui_dev_mode(screen, dev_mode_event)
         pygame.display.flip()
     pygame.quit()

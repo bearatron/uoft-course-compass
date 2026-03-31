@@ -31,7 +31,7 @@ Our project uses two primary datasets: data scrapped from the University of Toro
 The academic calendar dataset was collected by scaping the UofT Arts and Science Academic Calendar website (https://artsci.calendar.utoronto.ca) using requests library and BeautifulSoup. For each course, we extracted the course code, full course name, description, and prerequisite string.\\
 
 The prerequisite string has specific notation that is defined by the calendar:
-slashes (/) separate alternative prerequisites, 
+slashes (/) separate alternative prerequisites,
 commas (\verb|,|) separate cumulative requirements,
 and parentheses creates a group of courses.
 Some courses also specify minimum grade requirements alongside their prerequisite course codes (e.g., \verb|CSC148H1(60%)|). Keeping these in mind, our program parses these strings into a structured internal format ( \verb|CourseTree|) that is in \verb|course_tree.py|. Each node of the tree is either a course code (a leaf node), or a logical operator (\verb|ALL| or \verb|CHOOSE|) grouping its children. Grade requirements are stored as integer attributes on leaf nodes (\verb|-1| if no grade requirement is specified).
@@ -89,15 +89,28 @@ Several features are toggled through on-screen buttons: the tree can be simplifi
 Post-requisite trees are also rendered in the same pygame interface, allowing users to explore which courses become available to them after completing a selected course, with the depth of the tree adjustable by the user.
 
 
+\textbf{Libraries used:}
+BeautifulSoup
+requests
+json
+webbrowser
+textwrap
 
 
 
+\section{Changes to Our Project Plan:}
+After much discussion amoungst ourselves, we planned to remove the "Unintended minor" mentioned in the proposal. We feel that this feature isn't too helpful realistically speaking; it also requires us to utilize all the data on the programs. Hence, that plan was removed.
 
+Additionally, we also mutated the feature "Bottleneck Courses" mentioned in the proposal to another feature called the "course post-requisite difference". Essentially, it shows feature all the additional courses one could take if one takes a course A as opposed to course B to a certain depth (Note: the depth is the same as postrequisite tree's depth). Vice Versa, if course B was taken instead of course A.
+For Example : MAT137Y1 and MAT157Y1 with a depth of 1 (direct postrequisite), this feature would show MAT257 is available that is exclusive to MAT157Y1 students and not MAT137Y1.
+The purpose of the feature is to allow students to make more informed decision, in this case, whether to take MAT137/157 after knowing which courses each option would provide.
+
+Another feature we added it called "Available for summer" this course would ...
 
 \section*{References:}
 
 \begin{flushleft}
-Breuss, M. (n.d.). \textit{Beautiful Soup: Build a web scraper with Python – Real Python}. Real 
+Breuss, M. (n.d.). \textit{Beautiful Soup: Build a web scraper with Python – Real Python}. Real
 Python. Retrieved March \\ \hspace*{2cm}4, 2026, from https://realpython.com/beautiful-soup-web-scraper-python/
 
 Ellis, M., \& Quarshie, M. (2025, February 3). Student course evaluations rank statistics department lowest, small \ \hspace*{2cm}humanities centres highest. \textit{The Varsity}. Retrieved March 4, 2026, from \hspace*{2cm}https://thevarsity.ca/2025/02/03/student-course-evaluations-rank-statistics-department-lowest-small-\hspace*{2cm}-humanities-centres-highest/
