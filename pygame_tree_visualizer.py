@@ -495,12 +495,9 @@ def switch_to_course_select():
     global screen_mode
     screen_mode = "course_selection"
 
-def add_course_to_list():
-    code = taken_course_field.input_text
-    grade = int(grade_mark_field.input_text)
-    course_manager.add_course(code, grade)
-    print(course_manager.get_courses())  # debug (optional)
-    #SET DEFUALTS
+def add_course_to_list(course_manager_to_update: CourseManager, taken_course_code: str, course_mark: str):
+    course_grade = int(course_mark)
+    course_manager_to_update.add_course(taken_course_code, course_grade)
 
 def ui_dev_mode(ui_screen, ui_event):
     # TODO:delete this before final submission
@@ -526,6 +523,7 @@ if __name__ == '__main__':
     screen_height = 780
     size = (screen_width, screen_height)
     screen = pygame.display.set_mode(size)
+    font = pygame.font.Font("FjallaOne-Regular.ttf", 12)
 
     # for window visual look
     pygame.display.set_caption("U of T Course Compass")
@@ -555,7 +553,7 @@ if __name__ == '__main__':
 
     dev_mode_event = 0  # TODO:delete before final submission
 
-    screen_mode = "main"
+    screen_mode = "course_selection"
 
     main_screen_ui = UIManager()
 
@@ -578,7 +576,7 @@ if __name__ == '__main__':
     course_manager = CourseManager()
     taken_course_field = TextField("Course Code", 20,(492, 208), (610, 230))
     grade_mark_field = TextField("###", 20, (704, 203), (740, 237))
-    add_course_button = Button((801, 167), (971, 260), add_course_to_list)
+    add_course_button = Button((801, 167), (971, 260), lambda: add_course_to_list(course_manager, taken_course_field.input_text, grade_mark_field.input_text))
     course_selection_ui = UIManager()
     course_selection_ui.add(taken_course_field)
     course_selection_ui.add(grade_mark_field)
@@ -618,8 +616,27 @@ if __name__ == '__main__':
             taken_course_field.show_outline_for_debugging(screen)
             grade_mark_field.show_outline_for_debugging(screen)
             add_course_button.draw_button_for_debugging(screen)
-        elif screen_mode == "main":
+            course_list = course_manager.get_courses()
+            for i in range(len(course_list)):
+                course_with_mark = course_list[i]
+                course = course_with_mark[0]
+                grade = course_with_mark[1]
 
+                text = font.render(f"{course}: {grade}", True, (35, 68, 119))
+
+                if i < 19:
+                    x = 392
+                    y = 409 + i * 18
+                else:
+                    x = 392 + 50
+                    y = 409 + (i - 19) * 18
+
+                screen.blit(text, (x, y))
+
+
+
+
+        elif screen_mode == "main":
             screen.fill((255, 255, 255))
             if course_tree is not None:
                 draw_tree_visualization(course_tree, tree_camera.x_pos_tree,
