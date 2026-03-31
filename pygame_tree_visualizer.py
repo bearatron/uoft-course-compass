@@ -539,11 +539,11 @@ if __name__ == '__main__':
     CURSOR_COLOR = (255, 0, 0)  # white
 
     tree_visualizer_page = pygame.image.load(
-        "course_compass_main_UI_page.png")
+        "course_compass_main_ui_v4.png")
     tree_visualizer_page = pygame.transform.smoothscale(tree_visualizer_page, (1440, 780))
 
     start_page = pygame.image.load(
-        "course_compass_startup_screen.png")
+        "course_compass_startup_screen_v2.png")
     start_page = pygame.transform.smoothscale(start_page, (1440, 780))
 
     course_selection_page = pygame.image.load(
@@ -555,12 +555,13 @@ if __name__ == '__main__':
 
     dev_mode_event = 0  # TODO:delete before final submission
 
-    screen_mode = "start_screen"
+    screen_mode = "main"
 
     main_screen_ui = UIManager()
 
-    visualizer_search_field = TextField("Search Course", 30,(89, 81), (427, 132))
+    visualizer_search_field = TextField("Search Course", 30,(98, 29), (418, 73))
     info_box = VisualizerInfoBox(5,25)
+    #course_tree_button = Button((162,277),(315,293),)
     main_screen_ui.add(visualizer_search_field)
     main_screen_ui.add(info_box)
     tree_camera = TreeCamera(info_box)
@@ -631,6 +632,7 @@ if __name__ == '__main__':
             # for button in info_box.buttons:
             #     button.draw_button_for_debugging(screen)
         # uncomment below for dev mode
+        visualizer_search_field.show_outline_for_debugging(screen)
         ui_dev_mode(screen, dev_mode_event)
         pygame.display.flip()
     pygame.quit()
