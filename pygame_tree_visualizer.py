@@ -560,7 +560,7 @@ if __name__ == '__main__':
     CURSOR_COLOR = (255, 0, 0)  # white
 
     tree_visualizer_page = pygame.image.load(
-        "course_compass_main_ui_v4.png")
+        "course_compass_main_v5.png")
     tree_visualizer_page = pygame.transform.smoothscale(tree_visualizer_page, (1440, 780))
 
     start_page = pygame.image.load(
@@ -576,7 +576,7 @@ if __name__ == '__main__':
 
     dev_mode_event = 0  # TODO:delete before final submission
 
-    screen_mode = "course_selection"
+    screen_mode = "main"
 
     main_screen_ui = UIManager()
     visualizer_search_field = TextField("Search Course", 30,(98, 29), (418, 73))
@@ -668,8 +668,6 @@ if __name__ == '__main__':
 
 
         elif screen_mode == "main":
-            font = pygame.font.Font("FjallaOne-Regular.ttf", 12)
-            text = font.render("Hello world", True, (0,0,0))
 
 
             screen.fill((255, 255, 255))
