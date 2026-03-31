@@ -438,15 +438,19 @@ class VisualizerInfoBox(UIElement):
             self.buttons[0].rect.topleft = (self.x_pos+45, self.y_pos + 700)
 
 
-class SummerOfferingsText(UIElement):
-    def __init__(self):
-        pass
+class TextDisplayer(UIElement):
+    display_text: str
+    x_pos: int
+    y_pos: int
 
-    def handle_interaction(self, ui_event: pygame.event.Event) -> None:
-        pass
+    def __init__(self, display_text: str, x_pos: int, y_pos: int):
+        self.display_text = display_text
+        self.x_pos = x_pos
+        self.y_pos = y_pos
 
     def update_visually(self, ui_screen: pygame.Surface) -> None:
-        pass
+        font = pygame.font.Font("FjallaOne-Regular.ttf", 25)
+        display_multiline_text("Body", self.display_text, (self.x_pos, self.y_pos), font, ui_screen)
 
 def score_visualizer(score: int, y_pos: int, star_image, ui_screen) -> None:
     if score <= 5:
@@ -510,19 +514,13 @@ def add_course_to_list(course_manager_to_update: CourseManager, taken_course_cod
     course_grade = int(course_mark)
     course_manager_to_update.add_course(taken_course_code, course_grade)
 
-def show_summer_offerings(screen):
+def show_summer_offerings(course: str):
     with open("course_data_computed.json", "r") as file:
         data = json.load(file)
 
     font_text = pygame.font.Font("RobotoMono-VariableFont_wght.ttf", 12)
-
-    display_multiline_text(
-"paragraph",
-   "This is some test text",
-(531, 85),
-        font_text,
-        screen
-    )
+    summer_offerings_data = data[course]["summer_offerings"]
+    main_screen_text_displayer.display_text = f"This course was offered in the summer most recently in {summer_offerings_data["most_recent_year"]}"
 
 def ui_dev_mode(ui_screen, ui_event):
     # TODO:delete this before final submission
@@ -586,12 +584,13 @@ if __name__ == '__main__':
     summer_offering_button = Button(
         (272, 731),
         (424, 752),
-        lambda: show_summer_offerings(screen),
+        lambda: show_summer_offerings(visualizer_search_field.input_text),
     )
-
+    main_screen_text_displayer = TextDisplayer("", 100, 500)
     main_screen_ui.add(visualizer_search_field)
     main_screen_ui.add(info_box)
     main_screen_ui.add(summer_offering_button)
+    main_screen_ui.add(main_screen_text_displayer)
 
     tree_camera = TreeCamera(info_box)
     course_tree = None
