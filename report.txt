@@ -1,0 +1,121 @@
+\documentclass[fontsize=11pt]{article}
+\usepackage{url}
+\usepackage{amsmath}
+\usepackage[utf8]{inputenc}
+\usepackage[margin=0.75in]{geometry}
+
+\title{U of T Course Compass}
+\author{Shayan Bhatti, Jacob Chislett, Ethan Diep, Shuhan Yuan}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\section*{Problem Description and Research Question}
+The University of Toronto provides a detailed academic calendar informing students about all available courses, prerequisites, and program requirements. While this information is publicly available, it is displayed in a way that is overwhelming and entirely text based, making it difficult to understand. For example, consider the prerequisites for \textbf{MAT244H1 -- Introduction to Ordinary Differential Equations}:
+
+\begin{quote}
+(MAT133Y1/ MAT135H1/ MAT135H5/ MATA35H3/ MATA30H3/ MATA31H3, \\
+MAT136H1/ MAT136H5/ MATA36H3/ MATA37H3)/ MAT135Y5/ MAT137Y1/ MAT137Y5/ \\
+(MAT137H5, MAT139H5)/ MAT157Y1/ MAT157Y5/ (MAT157H5, MAT159H5), \\
+MAT223H1/ MATA23H3/ MAT223H5/ MAT240H1/ MAT240H5
+\end{quote}
+When reading this, a student must first understand what the slashes, commas, and parentheses mean. If a student clicks on any single course from the list to see its details, it will lead to a similarly overwhelming list, forcing the student to repeatedly look up course codes, interpret notation, and mentally map all the multi-level connections between courses. This makes it extremely difficult to visualize the full set of courses required to reach a target course, assess progression, or plan an efficient academic path. Beyond the structural confusion of prerequisites, the calendar also provides no information, the calendar provides no information on course quality, workload, or student satisfaction, leaving students without the guidance on which courses to prioritize, making it difficult to make informed decisions about their program progression. To address this, there is a clear need for a tool that can organize and visualize course prerequisites in a way that is intuitive and interactive. Our project, U of T Course Compass, aims to address this need: \textbf{How can we make the course selection process more accessible and understandable for students at U of T?}
+
+
+
+\section{Datasets:}
+Our project uses two primary datasets: data scrapped from the University of Toronto's Academic Calendar and course evaluation data from UofT's course evaluations portal.  \\
+
+\textbf{Dataset 1: Academic Calendar}:
+The academic calendar dataset was collected by scaping the UofT Arts and Science Academic Calendar website (https://artsci.calendar.utoronto.ca) using requests library and BeautifulSoup. For each course, we extracted the course code, full course name, description, and prerequisite string.\\
+
+The prerequisite string has specific notation that is defined by the calendar:
+slashes (/) separate alternative prerequisites, 
+commas (\verb|,|) separate cumulative requirements,
+and parentheses creates a group of courses.
+Some courses also specify minimum grade requirements alongside their prerequisite course codes (e.g., \verb|CSC148H1(60%)|). Keeping these in mind, our program parses these strings into a structured internal format ( \verb|CourseTree|) that is in \verb|course_tree.py|. Each node of the tree is either a course code (a leaf node), or a logical operator (\verb|ALL| or \verb|CHOOSE|) grouping its children. Grade requirements are stored as integer attributes on leaf nodes (\verb|-1| if no grade requirement is specified).
+
+Links to individual course and program pages on the Academic Calendar are generated using helper functions in \verb|link_of_course.py|, which format course and program codes into their corresponding URLs for display to users. \\ \\ \\ \\
+
+
+\textbf{Dataset 2: UofT Course Evaluations:}
+The course evaluation dataset was collected by scraping UofT's course evaluations website using \verb|Selenium|, a browser automation library, as implemented in \verb|course_evals_parser.py|
+
+\verb|Selenium| was used to  control a Chrome browser, interact with dropdown menus to filter by department, and paginate through the results table row by row. Each row of the table was extracted and appended to a \verb|.csv| output file.
+
+Each record in the resulting CSV contains the following fields: Division, Department, Course name and code, Term, Year, five general evaluation items (rated 1–5), Instructor Enthusiasm, Course Workload, Recommend Course rating, Number of students invited, and Number of responses. We collected evaluation data for the same five departments as above. A sample of the scraped output is available in \verb|demo.csv|, which contains data from the first two pages of the evaluations table, and \verb|mathematics.csv|, which contains all scraped evaluation data for the Mathematics department.
+
+These evaluation ratings are used in the project to support the course heat map feature, which colour-codes courses in a prerequisite or post-requisite tree according to factors such as workload or overall satisfaction.
+
+
+
+
+
+
+\subsection{Use of Trees to Model Data:}
+In order to make the academic calendar easier to follow, we used a tree structure to model course prerequisite and postrequisite relationships. Both are implemented using \verb|CourseTree| class defined in \verb|course_tree.py|
+
+For the \textbf{prerequisite tree}, the user inputs a course code and the program automatically generates a tree that recursively expands to display all direct and indirect prerequisites, ending at leaf nodes that represent courses with no further requirements. Each internal node is either an \verb|ALL| node (meaning all child courses are required) or a \verb|CHOOSE| node (meaning at least one child course is required), directly reflecting the comma and slash notation of the academic calendar. This hierarchical structure enables the user to clearly visualize the full path of courses needed to reach their target course.
+
+The prerequisite tree also supports \textbf{simplification} based on courses the user has already completed. When a user provides their taken courses and grades, the tree is pruned by removing completed courses and their subtrees, leaving only the remaining requirements. This is handled by the \verb|simplify_tree| method in \verb|CourseTree|.
+
+For the \textbf{post-requisite tree}, implemented in \verb|post_req_tree.py|, the program takes a course code and builds a tree showing which courses the user can take after completing it. The user can specify a depth, where each layer represents another level of post-requisites (e.g., depth 1 shows direct post-requisites, depth 2 shows post-requisites of post-requisites, and so on).
+
+\subsection{Computations on the Data:}
+To collect academic calendar data, we used \verb|requests.get()| to retrieve raw HTML from the UofT Arts and Science Academic Calendar, and \verb|BeautifulSoup| (initialized with \verb|features="html.parser"|) to parse it into a searchable structure. Methods such as \verb|soup.find()|, \verb|soup.find_all()|, and \verb|.text| were used to extract course codes and prerequisite strings. Course evaluation data was collected separately using \verb|Selenium| to automate a Chrome browser, filter by department, and paginate through the evaluations table row by row, appending each record to a \verb|.csv| output file.
+
+\textbf{Building the Prerequisite and Post-requisite Trees}
+
+The prerequisite tree is built recursively using \verb|CourseTree.generate_course_tree()| in \verb|course_tree.py|. The function parses the prerequisite string by identifying its outermost logical structure: if the string contains unnested commas, an \verb|ALL| node is created; if it contains unnested slashes, a \verb|CHOOSE| node is created; and if it is a single course code, a leaf node is created. This process repeats recursively on each sub-component until all leaf nodes are individual course codes.
+
+The post-requisite tree is built in \verb|post_req_tree.py| by first inverting the prerequisite dictionary — mapping each course to the courses that require it — and then recursively building a tree outward from the selected course up to a user-specified depth.
+
+\textbf{Simplifying the Tree Based on Taken Courses}
+
+Once a prerequisite tree is generated, it can be simplified based on courses the user has already completed. The \verb|simplify_tree()| method in \verb|CourseTree| traverses the tree recursively: completed courses are replaced with empty subtrees, \verb|ALL|nodes with all empty children collapse entirely, and \verb|CHOOSE| nodes with at least one empty child also collapse, since one of the required alternatives has been satisfied. The result is a pruned tree showing only the remaining requirements.
+
+\textbf{Course Heat Map}:
+
+
+\textbf{Visualization}
+
+The results of all computations are displayed interactively using \verb|pygame|. Each course is rendered as a labeled rectangular node, with lines connecting parent and child nodes to represent prerequisite or post-requisite relationships. The full multi-level tree can be navigated by the user using WASD controls to scroll through large trees that extend beyond the screen.
+
+Users can click on any individual course node to open an information panel displaying additional details such as the full course name, description, and a link to the course's Academic Calendar page, generated using \verb|link_of_course.py|.
+
+Several features are toggled through on-screen buttons: the tree can be simplified based on courses the user has already completed, and the course heat map can be enabled to colour-code each node based on evaluation factors such as workload or overall satisfaction drawn from the course evaluation dataset.
+
+Post-requisite trees are also rendered in the same pygame interface, allowing users to explore which courses become available to them after completing a selected course, with the depth of the tree adjustable by the user.
+
+
+
+
+
+
+
+\section*{References:}
+
+\begin{flushleft}
+Breuss, M. (n.d.). \textit{Beautiful Soup: Build a web scraper with Python – Real Python}. Real 
+Python. Retrieved March \\ \hspace*{2cm}4, 2026, from https://realpython.com/beautiful-soup-web-scraper-python/
+
+Ellis, M., \& Quarshie, M. (2025, February 3). Student course evaluations rank statistics department lowest, small \ \hspace*{2cm}humanities centres highest. \textit{The Varsity}. Retrieved March 4, 2026, from \hspace*{2cm}https://thevarsity.ca/2025/02/03/student-course-evaluations-rank-statistics-department-lowest-small-\hspace*{2cm}-humanities-centres-highest/
+
+
+\textit{Pygame front page — pygame v2.6.0 documentation}. (n.d.). Pygame. Retrieved March 4, 2026, from \hspace*{2cm} https://www.pygame.org/docs/
+
+
+University of Toronto. (n.d.). \textit{2025–26 academic calendar | Academic calendar}. Retrieved March 4, 2026, from \hspace*{2cm}https://artsci.calendar.utoronto.ca/
+
+
+University of Toronto. (n.d.). \textit{U of T course evaluations – Faculty of Arts \& Science UG}. Course Evals. \hspace*{2cm}https://course-evals.utoronto.ca/BPI/fbview.aspx?blockid=OjzZ9-LrM-peMm6q2u\&userid=cYQTzF-\hspace*{2cm}3fo2ufLLGH26rS-YRliCjyxiGeI8T\&lng=en
+
+\end{flushleft}
+
+% NOTE: LaTeX does have a built-in way of generating references automatically,
+% but it's a bit tricky to use so you are allowed to write your references manually
+% using a standard academic format like MLA or IEEE.
+% See project proposal handout for details.
+
+\end{document}

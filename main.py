@@ -1,6 +1,7 @@
 """main"""
 
-from academic_calendar_reader import PrerequisiteTreeLoader
+from academic_calendar_reader import CourseNotFoundError, PrerequisiteTreeLoader
+from optimal_path_to_course import CourseRatingsTree, optimal_path_to_course
 
 if __name__ == "__main__":
     programs = ["Computer Science", "Mathematics"]
@@ -18,10 +19,29 @@ if __name__ == "__main__":
     while running:
         course = input("Please enter a course code: ")
 
-        tree = loader.get_prerequisite_tree(course)
+        try:
+            tree = loader.get_prerequisite_tree(course)
+        except CourseNotFoundError:
+            print("That course does not exist")
+            continue
+
         print(tree)
         print('------')
 
         simplified_tree = loader.get_simplified_tree(course, courses_taken)
         print(simplified_tree)
-        print('------')
+        print('=' * 6)
+        metric = "prof_quality"
+        higher_is_better = True
+        print(f"Ratings for {metric} ({"higher is better" if higher_is_better else "lower is better"}):")
+        print(CourseRatingsTree.from_course_tree(simplified_tree, metric, higher_is_better))
+        print('-' * 6)
+        print("optimal path:")
+        print(optimal_path_to_course(
+            loader,
+            course,
+            courses_taken,
+            metric,
+            higher_is_better))
+
+        print('-' * 6)

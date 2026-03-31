@@ -412,7 +412,7 @@ class VisualizerInfoBox(UIElement):
             text_y = self.y_pos + 140
             display_multiline_text("Body", self.course_description,(text_x, text_y), font_text, ui_screen)
             #rate my prof scores:
-            with open("course_evals_parser/course_data_computed.json", "r") as file:
+            with open("course_data_computed.json", "r") as file:
                 data = json.load(file)
             course_quality = data[self.selected_course_code]["grouped_metrics"]["course_quality"]
             workload = data[self.selected_course_code]["grouped_metrics"]["workload"]
