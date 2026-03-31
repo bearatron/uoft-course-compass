@@ -1,5 +1,7 @@
 # Tree class
 from __future__ import annotations
+
+from operator import add
 from typing import Callable
 import textwrap
 import webbrowser
@@ -17,6 +19,8 @@ from course_tree import CourseTree
 # make all the new code more clean, ask for code practice feedback, add comments
 # missing tpye anotations
 # Bug with if i click ui, then the behind layer of course tree might also be clicked.
+# clean out useless images from file
+# make var private/public - basically good class practices
 # ---------------------------------------------------------------------
 # ---------------------------------------------------------------------
 # TREE VISUALIZATION HELPER FUNCTIONS
@@ -109,6 +113,14 @@ def draw_tree_visualization(tree: CourseTree, x_pos: int, y_pos: int, spacing_fa
 # TODO: type annotations are not specified for some methods in this block, a contract in the form of an interface is
 # needed to state what a ui item is i.e button/textfield
 # TODO: specify the contents of collections ie dict in type anotations
+#TODO: IS THIS GOOD CODE PRACTICE. add more attributes/complete ui element class
+class UIElement:
+    def handle_interaction(self, ui_event: pygame.event.Event) -> None:
+        return  # default: do nothing
+
+    def update_visually(self, ui_screen: pygame.Surface) -> None:
+        return  # default: do nothing
+
 class UIManager:
     ui_components: list
 
@@ -126,9 +138,20 @@ class UIManager:
         for e in self.ui_components:
             e.update_visually(ui_screen)
 
+class CourseManager:
+    courses: list[tuple[str, int]]
+    def __init__(self):
+        self.courses = []  # list of (course_code, grade)
 
-class TextField:
+    def add_course(self, code: str, grade: int):
+        self.courses.append((code, grade))
+
+    def get_courses(self):
+        return self.courses
+
+class TextField(UIElement):
     default_text: str
+    font_size: int
     input_text: str
     top_left_cord: tuple
     bottom_right_cord: tuple
@@ -136,8 +159,9 @@ class TextField:
     clear_default_value: bool
     rect: pygame.Rect
 
-    def __init__(self, default_text: str, top_left_cord: tuple, bottom_right_cord: tuple) -> None:
+    def __init__(self, default_text: str, font_size:int, top_left_cord: tuple, bottom_right_cord: tuple) -> None:
         self.default_text = default_text
+        self.font_size = font_size
         self.top_left_cord = top_left_cord
         self.bottom_right_cord = bottom_right_cord
 
@@ -166,21 +190,20 @@ class TextField:
                 self.is_active = False
 
     def update_visually(self, ui_screen) -> None:
-        font_size = 30
-        font = pygame.font.Font("FjallaOne-Regular.ttf", font_size)
+        font = pygame.font.Font("FjallaOne-Regular.ttf", self.font_size)
         if self.is_active:
             color = (0, 0, 200)
         else:
             color = (0, 0, 0)
         text_surface = font.render(self.input_text, True, color)
         center_of_rect = self.rect.center
-        justified_text_format = (self.top_left_cord[0], center_of_rect[1] - font_size // 2)
+        justified_text_format = (self.top_left_cord[0], center_of_rect[1] - self.font_size // 2)
 
         ui_screen.blit(text_surface, justified_text_format)
 
     def show_outline_for_debugging(self, ui_screen) -> None:
         # show outline of field
-        pygame.draw.rect(ui_screen, (255, 255, 255), self.rect, 2)
+        pygame.draw.rect(ui_screen, (0, 0, 0), self.rect, 2)
 
 
 class TreeCamera:
@@ -277,7 +300,7 @@ class TreeCamera:
 
 
 # TODO: can I use button class in text field
-class Button:
+class Button(UIElement):
     top_left_cord: tuple
     bottom_right_cord: tuple
     is_pressed: bool
@@ -315,7 +338,7 @@ class Button:
         pygame.draw.rect(ui_screen, color, self.rect, 2)  # outline only
 
 
-class VisualizerInfoBox:
+class VisualizerInfoBox(UIElement):
     x_pos: int
     y_pos: int
     course_code: str
@@ -464,6 +487,21 @@ def trim_name(name: str, max_length: int) -> str:
         return name[:max_length - 3] + "..."
     return name
 
+def switch_to_main():
+    global screen_mode
+    screen_mode = "main"
+
+def switch_to_course_select():
+    global screen_mode
+    screen_mode = "course_selection"
+
+def add_course_to_list():
+    code = taken_course_field.input_text
+    grade = int(grade_mark_field.input_text)
+    course_manager.add_course(code, grade)
+    print(course_manager.get_courses())  # debug (optional)
+    #SET DEFUALTS
+
 def ui_dev_mode(ui_screen, ui_event):
     # TODO:delete this before final submission
     pygame.mouse.set_visible(False)
@@ -477,7 +515,6 @@ def ui_dev_mode(ui_screen, ui_event):
 
     if ui_event.type == pygame.MOUSEBUTTONDOWN:
         print(x, y)
-
 
 if __name__ == '__main__':
 
@@ -497,7 +534,7 @@ if __name__ == '__main__':
     # ---------------------------------------------------------------------
     # Variables
     # ---------------------------------------------------------------------
-    DEV_MODE = False
+    DEV_MODE = True
     CURSOR_SIZE = 2  # tiny square
     CURSOR_COLOR = (255, 0, 0)  # white
 
@@ -505,18 +542,24 @@ if __name__ == '__main__':
         "course_compass_main_UI_page.png")
     tree_visualizer_page = pygame.transform.smoothscale(tree_visualizer_page, (1440, 780))
 
+    start_page = pygame.image.load(
+        "course_compass_startup_screen.png")
+    start_page = pygame.transform.smoothscale(start_page, (1440, 780))
 
+    course_selection_page = pygame.image.load(
+        "course_compass_course_selection_v3.png")
+    course_selection_page = pygame.transform.smoothscale(course_selection_page, (1440, 780))
     # For Shayan's Use Later
     # image2 = pygame.image.load("course_compass_course_selection_page.png")
     # image2 = pygame.transform.smoothscale(image2, (1440, 780))
 
     dev_mode_event = 0  # TODO:delete before final submission
 
-    screen_mode = "main"
+    screen_mode = "start_screen"
 
     main_screen_ui = UIManager()
 
-    visualizer_search_field = TextField("Search Course", (89, 81), (427, 132))
+    visualizer_search_field = TextField("Search Course", 30,(89, 81), (427, 132))
     info_box = VisualizerInfoBox(5,25)
     main_screen_ui.add(visualizer_search_field)
     main_screen_ui.add(info_box)
@@ -526,27 +569,55 @@ if __name__ == '__main__':
     programs = ["Computer Science", "Mathematics"]
     loader = PrerequisiteTreeLoader()
     loader.load_from_file("prerequisite_tree_save_data.json")
+
+    start_button = Button((406, 693), (1033, 754), switch_to_course_select)
+    start_screen_ui = UIManager()
+    start_screen_ui.add(start_button)
+
+    course_manager = CourseManager()
+    taken_course_field = TextField("Course Code", 20,(492, 208), (610, 230))
+    grade_mark_field = TextField("###", 20, (704, 203), (740, 237))
+    add_course_button = Button((801, 167), (971, 260), add_course_to_list)
+    course_selection_ui = UIManager()
+    course_selection_ui.add(taken_course_field)
+    course_selection_ui.add(grade_mark_field)
+    course_selection_ui.add(add_course_button)
+
+
     # ---------------------------------------------------------------------
     # MAIN LOOP
     # ---------------------------------------------------------------------
     done = False
     while not done:
         for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                done = True
-            tree_camera.handle_interaction(event)
-            main_screen_ui.handle_event(event)
             # uncomment below for dev mode
             dev_mode_event = event
-            # TEMPORARLY uses enter key to take input from search bar, eventually this will be a button
-            # TODO: error check input
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_RETURN:
-                    course_code = visualizer_search_field.input_text
-                    course_tree = loader.get_prerequisite_tree(course_code)
-                    tree_camera.reset_camera()
-
-        if screen_mode == "main":
+            if event.type == pygame.QUIT:
+                done = True
+            if screen_mode == "start_screen":
+                start_screen_ui.handle_event(event)
+            elif screen_mode == "course_selection":
+                course_selection_ui.handle_event(event)
+            elif screen_mode == "main":
+                tree_camera.handle_interaction(event)
+                main_screen_ui.handle_event(event)
+                # TEMPORARLY uses enter key to take input from search bar, eventually this will be a button
+                # TODO: error check input
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_RETURN:
+                        course_code = visualizer_search_field.input_text
+                        course_tree = loader.get_prerequisite_tree(course_code)
+                        tree_camera.reset_camera()
+        if screen_mode == "start_screen":
+            screen.blit(start_page, (0, 0))
+        elif screen_mode == "course_selection":
+            screen.blit(course_selection_page, (0, 0))
+            course_selection_ui.update_visually(screen)
+            #delete below:
+            taken_course_field.show_outline_for_debugging(screen)
+            grade_mark_field.show_outline_for_debugging(screen)
+            add_course_button.draw_button_for_debugging(screen)
+        elif screen_mode == "main":
 
             screen.fill((255, 255, 255))
             if course_tree is not None:
@@ -559,7 +630,7 @@ if __name__ == '__main__':
             main_screen_ui.update_visually(screen)
             # for button in info_box.buttons:
             #     button.draw_button_for_debugging(screen)
-            # uncomment below for dev mode
-            ui_dev_mode(screen, dev_mode_event)
+        # uncomment below for dev mode
+        ui_dev_mode(screen, dev_mode_event)
         pygame.display.flip()
     pygame.quit()
