@@ -107,6 +107,16 @@ The purpose of the feature is to allow students to make more informed decision, 
 
 Another feature we added it called "Available for summer" this course would ...
 
+
+\section{Discussion section:}
+Our program successfully fulfills the goal of making the course selection process more accessible and understandable for UofT students. By automatically generating prerequisite and post-requisite trees from the academic calendar and displaying them interactively through pygame, students are able to visualize complex multi-level course relationships that would otherwise require extensive manual navigation of the calendar's text-based notation. The tree simplification feature further personalizes this by allowing students to input their completed courses and instantly see only what remains, and the course heat map provides an additional layer of information about workload and satisfaction that the academic calendar does not offer at all.
+
+One limitation we encountered was .....
+
+
+For further exploration, the most natural next step would be expanding data collection to cover all departments offered at UofT, making the tool useful for the entire student population rather than a subset. Further improvements to the pygame interface, such as better layout algorithms for very large trees, would also improve the user experience.
+Overall, our program demonstrates that trees are a natural and effective structure for representing course prerequisite data, and that combining scraped academic data with an interactive visualization can meaningfully improve how students plan their academic paths at UofT.
+
 \section*{References:}
 
 \begin{flushleft}
