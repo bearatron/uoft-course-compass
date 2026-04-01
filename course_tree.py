@@ -173,45 +173,47 @@ class CourseTree:
             if self._subtrees[i].is_empty():
                 self._subtrees.pop(i)
 
-    def simplify_tree(self, courses_taken: dict[str, int]) -> CourseTree:
+    def get_simplified_tree(self, courses_taken: dict[str, int]) -> CourseTree:
         """Simplify the current course tree based on the courses taken that were passed in, with the method described
         in the project report
         """
-        # Simplify subtrees
-        for i in range(len(self._subtrees)):
-            self._subtrees[i] = self._subtrees[i].simplify_tree(courses_taken)
+        tree_copy = self.copy()
 
-        if self._root == 'ALL':
+        # Simplify subtrees
+        for i in range(len(tree_copy._subtrees)):
+            tree_copy._subtrees[i] = tree_copy._subtrees[i].get_simplified_tree(courses_taken)
+
+        if tree_copy._root == 'ALL':
             # If all subtrees are empty, return an emptry tree
-            if all(subtree.is_empty() for subtree in self._subtrees):
+            if all(subtree.is_empty() for subtree in tree_copy._subtrees):
                 return CourseTree(None, -1, [])
             # Otherwise, return the current tree with empty subtrees removed
             # Also, we remove this layer from the tree if it only has one subtree
             else:
-                self._remove_empty_subtrees()
-                if len(self._subtrees) == 1:
-                    return self._subtrees[0]
-                return self
+                tree_copy._remove_empty_subtrees()
+                if len(tree_copy._subtrees) == 1:
+                    return tree_copy._subtrees[0]
+                return tree_copy
 
-        elif self._root == 'CHOOSE':
+        elif tree_copy._root == 'CHOOSE':
             # If one of the subtrees is empty, return an empty tree
-            if any(subtree.is_empty() for subtree in self._subtrees):
+            if any(subtree.is_empty() for subtree in tree_copy._subtrees):
                 return CourseTree(None, -1, [])
             # Otherwise, return the current tree
             # Also, we remove this layer from the tree if it only has one subtree
             else:
-                if len(self._subtrees) == 1:
-                    return self._subtrees[0]
-                return self
+                if len(tree_copy._subtrees) == 1:
+                    return tree_copy._subtrees[0]
+                return tree_copy
 
-        else:  # self._root is a course
+        else:  # tree_copy._root is a course
             # If the course at the root has been completed, return an empty tree
-            if self._course_completed(courses_taken):
+            if tree_copy._course_completed(courses_taken):
                 return CourseTree(None, -1, [])
             # Otherwise, return the current tree with empty subtrees removed
             else:
-                self._remove_empty_subtrees()
-                return self
+                tree_copy._remove_empty_subtrees()
+                return tree_copy
 
     def is_prerequisite(self, course: str) -> bool:  #TODO:
         """Return whether the provided course is a direct prerequisite for the course at this tree's root
