@@ -435,25 +435,33 @@ class MainScreenUI(UIManager):
 
 class CourseManager:
     """
+    A class responsible for storing courses the user has taken and the grades earned.
 
+    Instance Attributes:
+        - courses: a dictionary mapping course codes to the user's grade in that course
     """
-    courses: list[tuple[str, int]]
+    courses: dict[str, int]
 
     def __init__(self):
-        self.courses = []  # list of (course_code, grade)
+        """Initialize a new CourseManager object with no stored courses."""
+        self.courses = {}
 
     def add_course(self, code: str, course_grade: int):
-        self.courses.append((code, course_grade))
+        """
+        Add a course and its respective grade to the manager.
+        If the course already exists, its grade is overwritten.
+        Preconditions:
+            - code != ""
+            - 0 <= course_grade <= 100
+        """
+        self.courses[code] = course_grade
 
-    def get_courses(self):
+    def get_courses(self) -> dict[str, int]:
+        """
+        Return the dictionary of stored courses and grades.
+        """
         return self.courses
 
-    def get_dict(self) -> dict[str, int]:  # TODO: Get rid of this later
-        dictionary = {}
-        for current_course_code in self.courses:
-            dictionary[current_course_code[0]] = course[1]
-
-        return dictionary
 
 
 class TextField(UIElement):
@@ -823,13 +831,7 @@ def generate_optimal_tree(course: str, metric: str, higher_is_better: bool):
         # change panel output mode to error output
         main_screen_ui.panel_output_mode = MainScreenUI.ERROR_OUTPUT
     else:
-        courses_taken_tuple = course_manager.get_courses()
-        courses_taken = {}
-
-        # convert the courses_taken tuple returned by course_manager to a dict
-        for key_val_pair in courses_taken_tuple:
-            key, val = key_val_pair
-            courses_taken[key] = val
+        courses_taken = course_manager.get_courses()
 
         # TODO: remove in final submission
         # default values of courses_taken used for testing
@@ -863,8 +865,7 @@ def generate_course_tree(course_code: str, tree_type: int, simplified: bool) -> 
     Preconditions:
         - tree_type in {CourseTreeOptions.PREREQ, CourseTreeOptions.POSTREQ}
     """
-    courses_taken_tuple = course_manager.get_courses()
-    courses_taken = {}
+    courses_taken = course_manager.get_courses()
 
     # TODO: remove in final submission
     # default values of courses_taken used for testing
@@ -875,11 +876,6 @@ def generate_course_tree(course_code: str, tree_type: int, simplified: bool) -> 
         'MAT223H1': 100,
         'STA237H1': 100
     }
-
-    # convert the courses_taken tuple returned by course_manager to a dict
-    for key_val_pair in courses_taken_tuple:
-        key, val = key_val_pair
-        courses_taken[key] = val
 
     try:
         if tree_type == CourseTreeOptions.PREREQ:
@@ -1089,14 +1085,39 @@ class Tree(UIElement):
             for subtree in tree.get_subtrees():
                 width_so_far += self.tree_width(subtree)
             return width_so_far
-
-
+#TODO: as prof, python ta, root file, monster class
 class TreeCamera:
+    """
+    A class responsible for controlling the viewing position and interaction
+    of the course tree visualization.
+
+    The TreeCamera handles:
+        - dragging the tree around the screen
+        - zooming in and out
+        - detecting node clicks
+        - updating the course info box when a node is clicked
+
+    Instance Attributes:
+        - x_pos_tree: the x-coordinate offset of the tree on the screen
+        - y_pos_tree: the y-coordinate offset of the tree on the screen
+        - dragging: whether the user is currently dragging the tree
+        - zoom_factor: the current zoom multiplier applied to the tree
+        - previous_mouse_pos: the previous mouse position during dragging
+        - node_course_code_map: a list mapping pygame.Rect nodes to course codes
+        - code_clicked: the course code of the node currently being clicked
+        - initial_mouse_down_pos: the mouse position when the click began
+        - course_info_box: the info box UI element associated with the tree
+
+    Representation Invariants:
+        - self.zoom_factor > 0
+        - self.x_pos_tree >= 0
+        - self.y_pos_tree >= 0
+     """
     x_pos_tree: int
     y_pos_tree: int
     dragging: bool
     zoom_factor: int
-    previous_mouse_pos: tuple
+    previous_mouse_pos: tuple[int,int] | None
     node_course_code_map: list[tuple[pygame.Rect, str]]
     code_clicked: str | None
     initial_mouse_down_pos: tuple[int, int] | None
@@ -1107,7 +1128,7 @@ class TreeCamera:
         self.y_pos_tree = 100
         self.dragging = False
         self.zoom_factor = 1
-        self.previous_mouse_pos = (0, 0)
+        self.previous_mouse_pos = None
         self.initial_mouse_down_pos = None
         self.node_course_code_map = []
         self.code_clicked = None
@@ -1348,11 +1369,12 @@ if __name__ == '__main__':
             grade_mark_field.show_outline_for_debugging(screen)
             add_course_button.show_outline_for_debugging(screen)
             add_course_button.show_outline_for_debugging(screen)
-            course_list = course_manager.get_courses()
+
+            course_dict = course_manager.get_courses()
+            course_list = list(course_dict.items())
+
             for i in range(len(course_list)):
-                course_with_mark = course_list[i]
-                course = course_with_mark[0]
-                grade = course_with_mark[1]
+                course, grade = course_list[i]
 
                 text = font.render(f"{course}: {grade}", True, (35, 68, 119))
 
