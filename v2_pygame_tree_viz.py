@@ -18,6 +18,8 @@ from dataclasses import dataclass
 from typing import Any, Optional
 import pygame
 from course_tree import CourseTree
+
+
 #------------------------------------------#
 #------------------------------------------#
 #------------------------------------------#
@@ -28,6 +30,7 @@ class AppState:
     current_course_tree: CourseTree | None = CourseTree(None, -1, [])
     current_tree_type: str = "prerequisite"
     is_current_tree_simplified: bool = False
+
 
 class UIElement:
     """
@@ -50,6 +53,7 @@ class UIElement:
         """
         raise NotImplementedError
 
+
 class UIManager:
     """
     A class responsible for managing a collection of UI elements.
@@ -60,6 +64,7 @@ class UIManager:
         - ui_components: a list of UIElement objects managed by this UIManager
     """
     ui_components: list[UIElement | UIManager]
+
     def __init__(self):
         """Initialize a new UI Manager object"""
         self.ui_components = []
@@ -78,6 +83,7 @@ class UIManager:
         for item in self.ui_components:
             item.update_visually(ui_screen)
 
+
 @dataclass
 class CourseTreeOptions:
     """
@@ -88,7 +94,6 @@ class CourseTreeOptions:
     #   - POSTREQ: an int representing the fact that the tree type displayed should be a postreq tree
     PREREQ = 0
     POSTREQ = 1
-
 
 
 @dataclass
@@ -358,12 +363,12 @@ class MainScreenUI(UIManager):
 
         # create a Slider object to select a metric
         self.optimal_path_slider = Slider(
-        ["course_spec_slider1.png", "course_spec_slider2.png", "course_spec_slider3.png"],
-                [
-                    ((left_x + 0*width, top_y), (left_x + 1*width, bottom_y)),
-                    ((left_x + 1*width, top_y), (left_x + 2*width, bottom_y)),
-                    ((left_x + 2*width, top_y), (left_x + 3*width, bottom_y)),
-                ],
+            ["course_spec_slider1.png", "course_spec_slider2.png", "course_spec_slider3.png"],
+            [
+                ((left_x + 0 * width, top_y), (left_x + 1 * width, bottom_y)),
+                ((left_x + 1 * width, top_y), (left_x + 2 * width, bottom_y)),
+                ((left_x + 2 * width, top_y), (left_x + 3 * width, bottom_y)),
+            ],
             (384, 47)
         )
 
@@ -398,7 +403,7 @@ class MainScreenUI(UIManager):
         # update UI elements that depend on panel output mode
 
         if self.panel_output_mode == MainScreenUI.TREE_OUTPUT:
-            self._tree_ui_element.update_visually(ui_screen) #TODO; second bug fix
+            self._tree_ui_element.update_visually(ui_screen)  #TODO; second bug fix
         elif self.panel_output_mode == MainScreenUI.TEXT_OUTPUT:
             self.text_displayer.update_visually(ui_screen)
         elif self.panel_output_mode == MainScreenUI.ERROR_OUTPUT:
@@ -427,11 +432,13 @@ class MainScreenUI(UIManager):
         if self.panel_output_mode == MainScreenUI.TREE_OUTPUT:
             self.info_box.update_visually(ui_screen)  # TODO: THIRD BUG FIX
 
+
 class CourseManager:
     """
 
     """
     courses: list[tuple[str, int]]
+
     def __init__(self):
         self.courses = []  # list of (course_code, grade)
 
@@ -448,6 +455,7 @@ class CourseManager:
 
         return dictionary
 
+
 class TextField(UIElement):
     default_text: str
     font_size: int
@@ -458,7 +466,7 @@ class TextField(UIElement):
     clear_default_value: bool
     rect: pygame.Rect
 
-    def __init__(self, default_text: str, font_size:int, top_left_cord: tuple, bottom_right_cord: tuple) -> None:
+    def __init__(self, default_text: str, font_size: int, top_left_cord: tuple, bottom_right_cord: tuple) -> None:
         self.default_text = default_text
         self.font_size = font_size
         self.top_left_cord = top_left_cord
@@ -531,6 +539,7 @@ class Button(UIElement):
             if self.is_pressed:
                 self.on_click()
             self.is_pressed = False
+
     def update_visually(self, ui_screen: pygame.Surface) -> None:
         return
 
@@ -543,6 +552,7 @@ class Button(UIElement):
             color = (0, 255, 0)
 
         pygame.draw.rect(ui_screen, color, self.rect, 2)  # outline only
+
 
 class VisualizerInfoBox(UIElement):
     x_pos: int
@@ -575,12 +585,13 @@ class VisualizerInfoBox(UIElement):
         filled_star_image = pygame.transform.smoothscale(pygame.image.load(
             "ui_star_course_compass.png"), (30, 30))
         background_shield = pygame.transform.smoothscale(pygame.image.load("info_box_shield.png"), (455, 778))
-        self.images = [background_image,filled_star_image, background_shield]
+        self.images = [background_image, filled_star_image, background_shield]
         panel_open_button = Button((x_pos + 45, y_pos), (x_pos + 350, y_pos + 45), self.change_state)
-        read_more_button = Button((159,393), (318, 414), self.read_more)
-        self.buttons = [panel_open_button,read_more_button]
+        read_more_button = Button((159, 393), (318, 414), self.read_more)
+        self.buttons = [panel_open_button, read_more_button]
 
-    def update_information(self, selected_course_code: str, course_title: str, course_description: str, quality_score: int, workload_score: int,
+    def update_information(self, selected_course_code: str, course_title: str, course_description: str,
+                           quality_score: int, workload_score: int,
                            assessment_score: int, number_of_reviews: int):
         self.selected_course_code = selected_course_code
         self.course_title = course_title
@@ -589,36 +600,40 @@ class VisualizerInfoBox(UIElement):
         self.workload_score = workload_score
         self.assessment_score = assessment_score
         self.number_of_reviews = number_of_reviews
+
     def handle_interaction(self, ui_event: pygame.event.Event):
         for button in self.buttons:
             button.handle_interaction(ui_event)
+
     def change_state(self):
         if self.is_enabled:
             if self.is_open:
                 self.is_open = False
             else:
                 self.is_open = True
+
     def read_more(self):
         if self.is_enabled and self.is_open:
             webbrowser.open(link_of_course.course_link_generate(self.selected_course_code))
+
     def update_visually(self, ui_screen):
         if self.is_enabled and self.is_open:
-            ui_screen.blit(self.images[2], (self.x_pos, self.y_pos-20))
+            ui_screen.blit(self.images[2], (self.x_pos, self.y_pos - 20))
             ui_screen.blit(self.images[0], (self.x_pos, self.y_pos))
-            self.buttons[0].rect.topleft = (self.x_pos+45, self.y_pos)
+            self.buttons[0].rect.topleft = (self.x_pos + 45, self.y_pos)
             font_text = pygame.font.Font("RobotoMono-VariableFont_wght.ttf", 12)
             font_heading = pygame.font.Font("FjallaOne-Regular.ttf", 25)
-            font_text_styled =  pygame.font.Font("FjallaOne-Regular.ttf", 12)
+            font_text_styled = pygame.font.Font("FjallaOne-Regular.ttf", 12)
 
             #visual elements of being open:
             #heading
             heading_x = self.x_pos + 40
             heading_y = self.y_pos + 60
-            display_multiline_text("Heading", self.course_title,(heading_x, heading_y), font_heading, ui_screen, None)
+            display_multiline_text("Heading", self.course_title, (heading_x, heading_y), font_heading, ui_screen, None)
             #body text
             text_x = self.x_pos + 40
             text_y = self.y_pos + 140
-            display_multiline_text("Body", self.course_description,(text_x, text_y), font_text, ui_screen, None)
+            display_multiline_text("Body", self.course_description, (text_x, text_y), font_text, ui_screen, None)
             #rate my prof scores:
             with open("course_data_computed.json", "r") as file:
                 data = json.load(file)
@@ -631,8 +646,8 @@ class VisualizerInfoBox(UIElement):
             top_3_profs = data[self.selected_course_code]["profs_by_rating"][:3]
             for i in range(len(top_3_profs)):
                 name = trim_name(top_3_profs[i], 30)
-                text_surface = font_text_styled.render(name, True, (35,68,119))
-                ui_screen.blit(text_surface, (275, 652 + i*18))
+                text_surface = font_text_styled.render(name, True, (35, 68, 119))
+                ui_screen.blit(text_surface, (275, 652 + i * 18))
             #num_reviews
             reviews_border_rect = pygame.Rect(171, 726, 307 - 171, 733 - 726)
             num_reviews = data[self.selected_course_code]["num_responses"]
@@ -644,7 +659,8 @@ class VisualizerInfoBox(UIElement):
         elif self.is_enabled and not self.is_open:
             ui_screen.blit(self.images[2], (self.x_pos, self.y_pos + 800))
             ui_screen.blit(self.images[0], (self.x_pos, self.y_pos + 700))
-            self.buttons[0].rect.topleft = (self.x_pos+45, self.y_pos + 700)
+            self.buttons[0].rect.topleft = (self.x_pos + 45, self.y_pos + 700)
+
 
 class TextDisplayer(UIElement):
     display_text: str
@@ -673,6 +689,7 @@ class TextDisplayer(UIElement):
             ui_screen,
             self.color
         )
+
     def handle_interaction(self, ui_event: pygame.event.Event) -> None:
         return
 
@@ -682,6 +699,8 @@ def score_visualizer(score: int, y_pos: int, star_image, ui_screen) -> None:
         for i in range(score):
             ui_screen.blit(star_image, (261 + 36 * i, y_pos))
     #todo:raise error
+
+
 def display_multiline_text(
         text_type: str,
         text: str,
@@ -728,19 +747,23 @@ def display_multiline_text(
         ui_screen.blit(text_surface, (text_x, text_y))
         text_y += text_surface.get_height() + line_spacing
 
+
 def trim_name(name: str, max_length: int) -> str:
-    name = name.split(",")[0] #takes last name only
+    name = name.split(",")[0]  #takes last name only
     if len(name) > max_length:
         return name[:max_length - 3] + "..."
     return name
+
 
 def switch_to_main():
     global screen_mode
     screen_mode = "main"
 
+
 def switch_to_course_select():
     global screen_mode
     screen_mode = "course_selection"
+
 
 def add_course_to_list(course_manager_to_update: CourseManager, taken_course_code: str, course_mark: str):
     course_grade = int(course_mark)
@@ -771,8 +794,13 @@ def show_summer_offerings(course: str) -> None:
         most_recent_year = summer_offerings_data["most_recent_year"]
 
         # combine data into an informative string
-        summer_info_text = (f"{course} has been offered in the summer {summer_years_offered} times in its "
-                f"{total_years_offered} year history, most recently in {most_recent_year}.")
+        if most_recent_year == 0:
+            summer_info_text = (f"{course} has been offered in the summer {summer_years_offered} times in its "
+                                f"{total_years_offered} year history.")
+        else:
+            summer_info_text = (f"{course} has been offered in the summer {summer_years_offered} times in its "
+                                f"{total_years_offered} year history, most recently in {most_recent_year}.")
+
         # display on main screen
         main_screen_ui.text_displayer.display_text = summer_info_text
         main_screen_ui.panel_output_mode = MainScreenUI.TEXT_OUTPUT
@@ -895,6 +923,7 @@ def ui_dev_mode(ui_screen, ui_event):
     if ui_event.type == pygame.MOUSEBUTTONDOWN:
         print(f"coords clicked: {x}, {y}")
 
+
 #TODO: handle jacobs version april 1
 # def set_prereq_tree():
 #     app_state.current_tree_type = "prerequisite"
@@ -939,14 +968,17 @@ class Tree(UIElement):
         self.tree_camera.handle_interaction(ui_event)
 
     def update_visually(self, ui_screen: pygame.Surface) -> None:
-        self.tree_camera.node_course_code_map.clear() #TODO: first bug fixed for info box error
+        self.tree_camera.node_course_code_map.clear()  #TODO: first bug fixed for info box error
 
         self.draw_tree_visualization(main_screen_ui.course_tree, (self.tree_camera.x_pos_tree,
-                                self.tree_camera.y_pos_tree), 300, self.tree_camera.zoom_factor,
-                                self.tree_camera.node_course_code_map, ui_screen)
+                                                                  self.tree_camera.y_pos_tree), 300,
+                                     self.tree_camera.zoom_factor,
+                                     self.tree_camera.node_course_code_map, ui_screen)
 
-    def draw_tree_visualization(self, tree: CourseTree, positions: tuple[int,int], spacing_factor: int, tree_zoom_factor: int,
-                                node_course_code_map: list[tuple[pygame.Rect, str]], target_screen: pygame.Surface) -> None:
+    def draw_tree_visualization(self, tree: CourseTree, positions: tuple[int, int], spacing_factor: int,
+                                tree_zoom_factor: int,
+                                node_course_code_map: list[tuple[pygame.Rect, str]],
+                                target_screen: pygame.Surface) -> None:
         """
             Draw a CourseTree onto the screen as a hierarchical tree diagram. The function traverses the provided tree
             recursively, drawing the current node and then its subtrees below it.
@@ -963,7 +995,7 @@ class Tree(UIElement):
             y_pos = positions[1]
             # Draw the node using the root value of the tree
             self.draw_node((tree.get_root(), tree.get_grade_requirement()), positions, tree_zoom_factor,
-                      node_course_code_map, target_screen)
+                           node_course_code_map, target_screen)
             # Determine total horizontal space needed for all children
             total_spacing = self.tree_width(tree) * spacing_factor * tree_zoom_factor
             # Start by placing children from the leftmost position so they are centered under the parent node
@@ -993,8 +1025,8 @@ class Tree(UIElement):
                 )
 
                 self.draw_tree_visualization(subtree, (child_x, y_pos + int(VERTICAL_SPACING * tree_zoom_factor)),
-                                        spacing_factor, tree_zoom_factor,
-                                        node_course_code_map, target_screen)
+                                             spacing_factor, tree_zoom_factor,
+                                             node_course_code_map, target_screen)
 
                 # Move to the next horizontal space for the next subtree
                 start_x_pos += subtree_width
@@ -1057,6 +1089,7 @@ class Tree(UIElement):
             for subtree in tree.get_subtrees():
                 width_so_far += self.tree_width(subtree)
             return width_so_far
+
 
 class TreeCamera:
     x_pos_tree: int
@@ -1150,7 +1183,8 @@ class TreeCamera:
         workload_score = 0
         number_of_reviews = 0
         prof_ranking = []
-        self.course_info_box.update_information(selected_course_code, course_title,description,course_quality_score,assessment_score,workload_score,number_of_reviews)
+        self.course_info_box.update_information(selected_course_code, course_title, description, course_quality_score,
+                                                assessment_score, workload_score, number_of_reviews)
 
 
 if __name__ == '__main__':
@@ -1255,7 +1289,7 @@ if __name__ == '__main__':
         "pre_post_req_slider2.png")
     course_tree_type_slider2 = pygame.transform.smoothscale(course_tree_type_slider2, (330, 47))
 
-    course_tree_type_slider_image = [course_tree_type_slider1,course_tree_type_slider2]
+    course_tree_type_slider_image = [course_tree_type_slider1, course_tree_type_slider2]
 
     selection_check_mark = pygame.image.load(
         "check_mark.png")
@@ -1269,14 +1303,15 @@ if __name__ == '__main__':
     start_screen_ui.add(start_button)
 
     course_manager = CourseManager()
-    taken_course_field = TextField("Course Code", 20,(492, 208), (610, 230))
+    taken_course_field = TextField("Course Code", 20, (492, 208), (610, 230))
     grade_mark_field = TextField("###", 20, (704, 203), (740, 237))
-    add_course_button = Button((801, 167), (971, 260), lambda: add_course_to_list(course_manager, taken_course_field.input_text, grade_mark_field.input_text))
+    add_course_button = Button((801, 167), (971, 260),
+                               lambda: add_course_to_list(course_manager, taken_course_field.input_text,
+                                                          grade_mark_field.input_text))
     course_selection_ui = UIManager()
     course_selection_ui.add(taken_course_field)
     course_selection_ui.add(grade_mark_field)
     course_selection_ui.add(add_course_button)
-
 
     # ---------------------------------------------------------------------
     # MAIN LOOP
@@ -1293,7 +1328,7 @@ if __name__ == '__main__':
             elif screen_mode == "course_selection":
                 course_selection_ui.handle_event(event)
                 if event.type == pygame.KEYDOWN and event.key == pygame.K_BACKSPACE:
-                    screen_mode = "main" #TODO: REMOVE - TEMP
+                    screen_mode = "main"  #TODO: REMOVE - TEMP
             elif screen_mode == "main":
                 #main_screen_ui.tree_camera.handle_interaction(event) #TODO:redundent
                 main_screen_ui.handle_event(event)
@@ -1346,7 +1381,7 @@ if __name__ == '__main__':
             #     screen.blit(course_tree_type_slider_image[1], (74, 181))
 
             if app_state.is_current_tree_simplified:
-                screen.blit(selection_check_mark, (288,230))
+                screen.blit(selection_check_mark, (288, 230))
 
             #
             #
@@ -1355,7 +1390,7 @@ if __name__ == '__main__':
             # summer_offering_button.show_outline_for_debugging(screen)
             # # for button in info_box.buttons:
             #     button.draw_button_for_debugging(screen)
-    # uncomment below for dev mode
+        # uncomment below for dev mode
         ui_dev_mode(screen, dev_mode_event)
         pygame.display.flip()
     pygame.quit()
