@@ -12,6 +12,7 @@ class CourseTree:
     Representation Invariants:
        - self._root is not None or self._subtrees == []
        - all(not subtree.is_empty() for subtree in self._subtrees)
+       - self._tree_type in {"prerequisite", "postrequisite"}
     """
     # Private Instance Attributes:
     #   - _required_grade:
@@ -24,6 +25,8 @@ class CourseTree:
     #       self._root is None (representing an empty tree). However, this attribute
     #       may be empty when self._root is not None, which represents a tree consisting
     #       of just one item.
+    #   - _tree_type:
+    #       The type of tree. Either prerequisite tree or postrequisite tree
     _required_grade: int
     _root: Optional[Any]
     _subtrees: list[CourseTree]
@@ -40,6 +43,7 @@ class CourseTree:
         self._root = root
         self._required_grade = grade
         self._subtrees = subtrees
+
 
     def is_leaf(self) -> bool:
         """Return whether the tree is a leaf"""
@@ -208,6 +212,19 @@ class CourseTree:
             else:
                 self._remove_empty_subtrees()
                 return self
+
+    def is_prerequisite(self, course: str) -> bool:  #TODO:
+        """Return whether the provided course is a direct prerequisite for the course at this tree's root
+        """
+        for subtree in self._subtrees:
+            if subtree.get_root() in {"CHOOSE", "ALL"}:
+                if subtree.is_prerequisite(course):
+                    return True
+            else:
+                if course == subtree.get_root():
+                    return True
+
+        return False
 
     def copy(self) -> CourseTree:
         """Return a copy of this course tree

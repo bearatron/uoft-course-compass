@@ -8,6 +8,7 @@ import webbrowser
 import link_of_course
 import json
 from pygame.examples.scroll import zoom_factor
+from post_req_tree import PostrequisiteTreeLoader
 
 from academic_calendar_reader import PrerequisiteTreeLoader, CourseNotFoundError
 from dataclasses import dataclass
@@ -16,17 +17,150 @@ import pygame
 from course_tree import CourseTree
 # from main_screen_ui import MainScreenUI
 
+#TODO: make it so that when info pannel is open than the search doesnt work
+# make all the new code more clean, ask for code practice feedback, add comments
+# missing tpye anotations
+# Bug with if i click ui, then the behind layer of course tree might also be clicked.
+# clean out useless images from file
+# make var private/public - basically good class practices
+# I feel like global vars are okay for specific state thing, but what if i make a struct for all states
+# ---------------------------------------------------------------------
+# ---------------------------------------------------------------------
+# TREE VISUALIZATION HELPER FUNCTIONS
+# ---------------------------------------------------------------------
+# ---------------------------------------------------------------------
+def draw_node(display_vals: tuple[str, str], position: tuple[int,int], screen_zoom_factor: int,
+              node_course_code_map: list[tuple[pygame.Rect, str]], target_screen: pygame.Surface) -> None:
+    """
+    Draw a node on point (x_pos, y_pos) with text, display_val
+
+    Preconditions:
+    - screen_zoom_factor > 0
+    """
+    # Define rectangle size with respect to the screen_zoom_factor which scales the
+    # Rectangle based on how zoomed in or out the user is
+    rect_width = int(200 * screen_zoom_factor)
+    rect_height = int(50 * screen_zoom_factor)
+
+    x_pos = position[0]
+    y_pos = position[1]
+
+    COURSE_CODE_INDEX = 0
+    COURSE_MARK_INDEX = 1
+
+    # Node is a pygame rect so that it can be drawn and interacted with later on
+    node = pygame.Rect(x_pos, y_pos, rect_width, rect_height)
+
+    # Adding node to a tuple list that maps node object with course code (display_val)
+    node_course_code_map.append((node, display_vals[COURSE_CODE_INDEX]))
+
+    # Drawing rect to screen
+    pygame.draw.rect(target_screen,
+                     (161, 202, 246),
+                     node,
+                     border_radius=int(15 * screen_zoom_factor))
+
+    # Creating the node text font
+    font_size = max(12, int(24 * screen_zoom_factor))
+    node_font = pygame.font.Font("FjallaOne-Regular.ttf", font_size)
+    # Creating node text
+    text_to_display = display_vals[COURSE_CODE_INDEX] + " " + display_vals[COURSE_MARK_INDEX]
+    text_img = node_font.render(text_to_display, True, [0, 0, 0])
+    # Get text rect so that text can be centered in the rect
+    text_rect = text_img.get_rect()
+    # Setting the text to the center of the node
+    text_rect.center = (x_pos + rect_width // 2, y_pos + rect_height // 2)
+
+    # Displaying the node text
+    target_screen.blit(text_img, text_rect)
+
+def tree_width(tree: CourseTree) -> int:
+    """
+    Recursively return width of tree (width of the lowest layer of all subtrees)
+    """
+    if tree.is_empty():
+        return 0
+    elif not tree.get_subtrees():
+        return 1
+    else:
+        width_so_far = 0
+        for subtree in tree.get_subtrees():
+            width_so_far += tree_width(subtree)
+        return width_so_far
+
+
+def draw_tree_visualization(tree: CourseTree, positions: tuple[int,int], spacing_factor: int, tree_zoom_factor: int,
+                            node_course_code_map: list[tuple[pygame.Rect, str]], target_screen: pygame.Surface):
+    """
+    Draw a CourseTree onto the screen as a hierarchical tree diagram. The function traverses the provided tree
+    recursively, drawing the current node and then its subtrees below it.
+
+    Preconditions:
+    - spacing_factor > 0
+    - tree_zoom_factor > 0
+    """
+    if tree.is_empty():
+        return
+    else:
+        # Extract x,y positions from tuple
+        x_pos = positions[0]
+        y_pos = positions[1]
+        # Draw the node using the root value of the tree
+        draw_node((tree.get_root(), tree.get_grade_requirement()), positions, tree_zoom_factor, node_course_code_map)
+        # Determine total horizontal space needed for all children
+        total_spacing = tree_width(tree) * spacing_factor * tree_zoom_factor
+        # Start by placing children from the leftmost position so they are centered under the parent node
+        start_x_pos = x_pos - total_spacing // 2
+
+        for subtree in tree.get_subtrees():
+            # Each subtree is given horizontal space based on its width
+            subtree_width = tree_width(subtree) * spacing_factor * tree_zoom_factor
+            # Place child node in center of its allocated space
+            child_x = start_x_pos + subtree_width // 2
+
+            # Constants for tree layout
+            NODE_WIDTH = 200
+            NODE_HEIGHT = 50
+            VERTICAL_SPACING = 150
+            LINE_THICKNESS = 4
+            LINE_COLOR = (0, 0, 0)
+
+            # Draw line from parent to child
+            pygame.draw.line(
+                target_screen, LINE_COLOR,
+                (x_pos + int(NODE_WIDTH / 2 * tree_zoom_factor),
+                 y_pos + int(NODE_HEIGHT * tree_zoom_factor)),
+                (child_x + int(NODE_WIDTH / 2 * tree_zoom_factor),
+                 y_pos + int(VERTICAL_SPACING * tree_zoom_factor)),
+                max(1, int(LINE_THICKNESS * tree_zoom_factor))
+            )
+
+            draw_tree_visualization(subtree, (child_x, y_pos + int(VERTICAL_SPACING  * tree_zoom_factor)), spacing_factor, tree_zoom_factor,
+                                    node_course_code_map, target_screen)
+
+            # Move to the next horizontal space for the next subtree
+            start_x_pos += subtree_width
+
+
 # ---------------------------------------------------------------------
 # ---------------------------------------------------------------------
 # UI Classes
 # ---------------------------------------------------------------------
 # ---------------------------------------------------------------------
+@dataclass
+class AppState:
+    # for rep invairants add that tree type is either pre req or post req
+    current_course_tree: CourseTree | None = None
+    current_tree_type: str = "prerequisite"
+    is_current_tree_simplified: bool = False
+
 # TODO: type annotations are not specified for some methods in this block, a contract in the form of an interface is
 # needed to state what a ui item is i.e button/textfield
 # TODO: specify the contents of collections ie dict in type anotations
 #TODO: IS THIS GOOD CODE PRACTICE. add more attributes/complete ui element class
 class UIElement:
     def handle_interaction(self, ui_event: pygame.event.Event) -> None:
+        #TODO: raise not implement error
         return  # default: do nothing
 
     def update_visually(self, ui_screen: pygame.Surface) -> None:
@@ -49,6 +183,34 @@ class UIManager:
         for e in self.ui_elements:
             e.update_visually(ui_screen)
 
+class CourseManager:
+    courses: list[tuple[str, int]]
+    def __init__(self):
+        self.courses = []  # list of (course_code, grade)
+
+    def add_course(self, code: str, grade: int):
+        self.courses.append((code, grade))
+
+    def get_courses(self):
+        return self.courses
+
+    def get_dict(self) -> dict[str, int]:  # TODO: Get rid of this later
+        dictionary = {}
+        for course in self.courses:
+            dictionary[course[0]] = course[1]
+
+        return dictionary
+
+
+class TextField(UIElement):
+    default_text: str
+    font_size: int
+    input_text: str
+    top_left_cord: tuple
+    bottom_right_cord: tuple
+    is_active: bool
+    clear_default_value: bool
+    rect: pygame.Rect
 
 #TODO: make it so that when info pannel is open than the search doesnt work
 # make all the new code more clean, ask for code practice feedback, add comments
@@ -712,8 +874,39 @@ def ui_dev_mode(ui_screen, ui_event):
 
     if ui_event.type == pygame.MOUSEBUTTONDOWN:
         print(x, y)
+def set_prereq_tree():
+    app_state.current_tree_type = "prerequisite"
+
+def set_postreq_tree():
+    app_state.current_tree_type = "postrequisite"
+def set_simplified_tree():
+    if app_state.is_current_tree_simplified:
+        app_state.is_current_tree_simplified = False
+    else:
+        app_state.is_current_tree_simplified = True
+
+def generate_tree(loader: PrerequisiteTreeLoader):
+    print('h')
+    current_course = visualizer_search_field.input_text
+    # CASE 1: Postrequisite
+    if app_state.current_tree_type.lower() == 'postrequisite':  # TODO:
+        app_state.current_course_tree = loader.get_postrequisite_tree(current_course)
+    # Case 2: prereq unsimplified
+    elif app_state.current_tree_type.lower() == 'prerequisite' and not app_state.is_current_tree_simplified:  # TODO:
+        app_state.current_course_tree = loader.get_prerequisite_tree(current_course)
+    # Case 3: prereq simplified
+    else:
+        courses_taken = course_manager.get_dict()
+        app_state.current_course_tree = loader.get_prerequisite_tree(current_course).simplify_tree(courses_taken)
+
+    tree_camera.reset_camera()
+
 
 if __name__ == '__main__':
+
+    # JACOB SECTION
+    loader = PrerequisiteTreeLoader()
+    loader.load_from_file("prerequisite_tree_save_data.json")
 
     # ---------------------------------------------------------------------
     # LOAD CANVAS
@@ -732,7 +925,7 @@ if __name__ == '__main__':
     # ---------------------------------------------------------------------
     # Variables
     # ---------------------------------------------------------------------
-    DEV_MODE = True
+    DEV_MODE = False
     CURSOR_SIZE = 2  # tiny square
     CURSOR_COLOR = (255, 0, 0)  # white
 
@@ -743,19 +936,77 @@ if __name__ == '__main__':
     course_selection_page = pygame.image.load(
         "course_compass_course_selection_v3.png")
     course_selection_page = pygame.transform.smoothscale(course_selection_page, (1440, 780))
-    # For Shayan's Use Later
-    # image2 = pygame.image.load("course_compass_course_selection_page.png")
-    # image2 = pygame.transform.smoothscale(image2, (1440, 780))
 
     dev_mode_event = 0  # TODO:delete before final submission
 
-    screen_mode = "main"
+    screen_mode = "course_selection"
 
     main_screen_ui = MainScreenUI()
+    main_screen_ui = UIManager()
+    visualizer_search_field = TextField("Search Course", 30,(98, 29), (418, 73))
+    info_box = VisualizerInfoBox(5,25)
+    summer_offering_button = Button(
+        (272, 731),
+        (424, 752),
+        lambda: show_summer_offerings(visualizer_search_field.input_text)
+    )
+    pre_req_button = Button(
+        (79, 184),
+        (214, 224),
+        set_prereq_tree
+    )
+    post_req_button = Button(
+        (245, 183),
+        (400, 221),
+        set_postreq_tree
+    )
+    simplify_tree_button = Button((285,237),(308,259), set_simplified_tree)
 
-    programs = ["Computer Science", "Mathematics"]
-    loader = PrerequisiteTreeLoader()
-    loader.load_from_file("prerequisite_tree_save_data.json")
+    generate_tree_button = Button(
+        (164,276),
+        (314,294),
+        lambda: generate_tree(loader)
+    )
+
+    main_screen_text_displayer = TextDisplayer("", 100, 500)
+    main_screen_ui.add(visualizer_search_field)
+    main_screen_ui.add(info_box)
+    main_screen_ui.add(summer_offering_button)
+    main_screen_ui.add(main_screen_text_displayer)
+    main_screen_ui.add(post_req_button)
+    main_screen_ui.add(pre_req_button)
+    main_screen_ui.add(simplify_tree_button)
+    main_screen_ui.add(generate_tree_button)
+
+    course_spec_slider1 = pygame.image.load(
+        "course_spec_slider1.png")
+    course_spec_slider1 = pygame.transform.smoothscale(course_spec_slider1, (384, 47))
+
+    course_spec_slider2 = pygame.image.load(
+        "course_spec_slider2.png")
+    course_spec_slider2 = pygame.transform.smoothscale(course_spec_slider2, (384, 47))
+
+    course_spec_slider3 = pygame.image.load(
+        "course_spec_slider3.png")
+
+    course_spec_slider3 = pygame.transform.smoothscale(course_spec_slider3, (384, 47))
+
+    course_tree_type_slider1 = pygame.image.load(
+        "pre_post_req_slider1.png")
+    course_tree_type_slider1 = pygame.transform.smoothscale(course_tree_type_slider1, (330, 47))
+
+    course_tree_type_slider2 = pygame.image.load(
+        "pre_post_req_slider2.png")
+    course_tree_type_slider2 = pygame.transform.smoothscale(course_tree_type_slider2, (330, 47))
+
+    course_tree_type_slider_image = [course_tree_type_slider1,course_tree_type_slider2]
+
+    selection_check_mark = pygame.image.load(
+        "check_mark.png")
+    selection_check_mark = pygame.transform.smoothscale(selection_check_mark, (41, 33))
+
+    tree_camera = TreeCamera(info_box)
+    app_state = AppState()
 
     start_button = Button((406, 693), (1033, 754), switch_to_course_select)
     start_screen_ui = UIManager()
@@ -785,6 +1036,8 @@ if __name__ == '__main__':
                 start_screen_ui.handle_event(event)
             elif screen_mode == "course_selection":
                 course_selection_ui.handle_event(event)
+                if event.type == pygame.KEYDOWN and event.key == pygame.K_BACKSPACE:
+                    screen_mode = "main"
             elif screen_mode == "main":
                 main_screen_ui.tree_camera.handle_interaction(event)
                 main_screen_ui.handle_event(event)
@@ -836,9 +1089,20 @@ if __name__ == '__main__':
                     y = 409 + (i - 19) * 18
 
                 screen.blit(text, (x, y))
-
         elif screen_mode == "main":
             screen.fill((255, 255, 255))
+            if app_state.current_course_tree is not None:
+                draw_tree_visualization(app_state.current_course_tree, (tree_camera.x_pos_tree,
+                                        tree_camera.y_pos_tree), 300, tree_camera.zoom_factor,
+                                        tree_camera.node_course_code_map)
+            screen.blit(tree_visualizer_page, (0, 0))
+            if app_state.current_tree_type == "prerequisite":
+                screen.blit(course_tree_type_slider_image[0],(74,181))
+            else:
+                screen.blit(course_tree_type_slider_image[1], (74, 181))
+
+            if app_state.is_current_tree_simplified:
+                screen.blit(selection_check_mark, (288,230))
 
             # draw the panel based on panel output mode
             # if main_screen_ui.panel_output_mode == MainScreenUI.TREE_OUTPUT:

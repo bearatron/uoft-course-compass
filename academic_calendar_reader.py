@@ -460,7 +460,21 @@ class PrerequisiteTreeLoader:
 
         return self._prerequisite_trees[course_code]
 
-    def get_prerequisite_trees(self) -> dict[str, CourseTree]:
+    def get_postrequisite_tree(self, course_code: str) -> CourseTree:
+        """Return the postrequisite tree that corresponds to the given course_code
+        """
+        postrequisite_list = []
+        for course in self._prerequisite_trees:
+            tree = self._prerequisite_trees[course]
+            if tree.is_prerequisite(course_code):
+                postrequisite_list.append(CourseTree(course, -1, []))
+
+        postrequisite_tree = CourseTree(course_code, -1, postrequisite_list)
+
+        return postrequisite_tree
+
+
+    def get_prerequisite_trees(self) -> dict[str, CourseTree]:  # TODO: get rid of this
         """Return all the prerequisite trees stored in this Loader
         """
         return self._prerequisite_trees.copy()

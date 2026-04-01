@@ -1,9 +1,11 @@
 """This file is used to create a tree of all the post-requisites and all post requisit tree related function"""
+from academic_calendar_reader import PrerequisiteTreeLoader
 from academic_calendar_reader import load_course_information
 from string_methods import is_course_code
 from course_tree import CourseTree
 
 
+# TODO: ...
 def load_course_postrequisites(program: str) -> dict[str, list[str]]:
     """
     This function takes in a program and return a dictionary with each course corresponding to its post
@@ -97,3 +99,8 @@ def course_difference_tree(tree1: CourseTree, tree2: CourseTree):
     courses_exclusive_tree1, courses_exclusive_tree2 = courses1 - courses2, courses2 - courses1
     return {"course for both": courses1 | courses2, f"course exclusive for {tree1.get_root()}" : courses_exclusive_tree1,
             f"course exclusive for {tree2.get_root()}": courses_exclusive_tree2}
+
+# def get_direct_postrequisites(course_code: str, save_file: str) -> CourseTree:
+#     loader = PrerequisiteTreeLoader()
+#     loader.load_from_file(save_file)
+#     course_tree = loader.get_prerequisite_tree
