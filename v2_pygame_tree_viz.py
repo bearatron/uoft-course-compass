@@ -154,7 +154,7 @@ class Slider(UIManager):
             option_button = Button(
                 top_left,
                 bottom_right,
-                lambda: self.change_selection(option_id),
+                lambda option_id=option_id: self.change_selection(option_id)
             )
 
             self.option_buttons.append(option_button)
@@ -184,6 +184,7 @@ class Slider(UIManager):
         """
 
         selected_option_surface = self.option_surfaces[self.curr_selection]
+        #always draw slider at same location b/c its the same image in a diffrent state
         coords = self.option_coords[0]
         ui_screen.blit(selected_option_surface, coords)
 
