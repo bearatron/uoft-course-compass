@@ -37,7 +37,7 @@ class UIElement:
         return  # default: do nothing
 
 class UIManager:
-    ui_components: list[UIElement]
+    ui_components: list[UIElement | UIManager]
 
     def __init__(self):
         self.ui_components = []
@@ -52,6 +52,118 @@ class UIManager:
     def update_visually(self, ui_screen):
         for e in self.ui_components:
             e.update_visually(ui_screen)
+
+@dataclass
+class CourseTreeOptions:
+    """
+    Dataclass to store options
+    """
+    # Static attributes:
+    #   - PREREQ: an int representing the fact that the tree type displayed should be a prereq tree
+    #   - POSTREQ: an int representing the fact that the tree type displayed should be a postreq tree
+    PREREQ = 0
+    POSTREQ = 1
+
+    # Instance attributes:
+    #   - tree_type: an int representing the tree type
+    #   - simplified: whether the course tree to be displayed is simplified or not
+    tree_type: int = PREREQ
+    simplified: bool = False
+
+
+class Slider(UIManager):
+    """
+    A class for a slider UI manager that handles toggling between multiple options
+    This is a UI manager because it contains a collection of buttons
+
+    Representation Invariants:
+        - 0 <= curr_selection < num_options
+        - num_options == len(option_filepaths) == len(option_surfaces) == len(option_coords)
+        - option_surface[i] is constructed from option_filepath[i] for any i in range(num_options)
+        - option_buttons[i] has top left and bottom right coords from option_coords[i] for any i in range(num_options)
+    """
+    # Instance Attributes:
+    #   - curr_selection: an int representing the index of the currently selected option
+    #   - num_options: an int representing the number of options for the slider
+    #   - option_filepaths: a list of filepaths where the slider options are located
+    #   - option_surfaces: a list of pygame Surfaces representing the various options
+    #   - option_buttons: a list of Buttons representing the slider options
+    #   - option_coords: a list of coords representing the slider options
+    #   - slider_size: a tuple representing the width and height of each slider option
+    curr_selection: int
+    num_options: int
+    option_filepaths: list[str]
+    option_surfaces: list[pygame.Surface]
+    option_buttons: list[Button]
+    option_coords: list[tuple[tuple[int, int], tuple[int, int]]]
+    slider_size: tuple[int, int]
+
+    def __init__(self,
+                 option_filepaths: list[str],
+                 option_coords: list[tuple[tuple[int, int], tuple[int, int]]],
+                 slider_size: tuple[int, int]) -> None:
+        """
+        Initializes an instance of Slider
+        option_coords is a list of top left and bottom right coordinates of the slider option buttons
+        """
+        super().__init__()
+        self.option_filepaths = option_filepaths
+        self.option_coords = option_coords
+        self.num_options = len(self.option_filepaths)
+
+        self.slider_size = slider_size
+        self.curr_selection = 0
+
+        # construct option surfaces from filepaths
+        self.option_surfaces = []
+        # construct option buttons from filepaths
+        self.option_buttons = []
+
+        for option_id in range(self.num_options):
+            option_img = pygame.image.load(option_filepaths[option_id])
+            option_surface = pygame.transform.smoothscale(option_img, size)
+            self.option_surfaces.append(option_surface)
+
+            button_coords = self.option_coords[option_id]
+            top_left, bottom_right = button_coords
+            option_button = Button(
+                top_left,
+                bottom_right,
+                lambda: self.change_selection(option_id),
+            )
+
+            self.option_buttons.append(option_button)
+
+    def change_selection(self, to_id: int) -> None:
+        """
+        Changes the slider selection to id
+        """
+        self.curr_selection = to_id
+
+    def handle_interaction(self, ui_event: pygame.event.Event) -> None:
+        """
+        handle interaction
+        """
+        print(f"curr selection: {self.curr_selection}")
+        print(f"{self.option_buttons}")
+
+        for button in self.option_buttons:
+            button.handle_interaction(ui_event)
+
+    def update_visually(self, ui_screen: pygame.Surface) -> None:
+        """
+        update visually
+        """
+
+        selected_button = self.option_buttons[self.curr_selection]
+        print(self.curr_selection)
+        print(selected_button)
+        selected_button.update_visually(ui_screen)
+
+    def show_outline_for_debugging(self, ui_screen) -> None:
+        # show outline of options
+        for button in self.option_buttons:
+            pygame.draw.rect(ui_screen, (0, 255, 0), button.rect, 2)
 
 
 class MainScreenUI(UIManager):
@@ -70,8 +182,10 @@ class MainScreenUI(UIManager):
     TEXT_OUTPUT = 1
     ERROR_OUTPUT = 2
     BG_PATH = "course_compass_main_v6.png"
+
     # Instance attributes:
     #   - panel_output_mode: an int representing what type of data the panel output should display
+    #   - tree_type: int
     #   - tree_camera: a TreeCamera object for the Tree UI element
     #   - course_tree: a CourseTree object for the Tree UI element
     #   - info_box: a VisualizerInfoBox representing the info box UI element
@@ -80,6 +194,7 @@ class MainScreenUI(UIManager):
     #   - error_displayer: a TextDisplayer for displaying a red error message
     #   - text_displayer: a TextDisplayer for displaying regular plaintext output
     panel_output_mode: int
+    tree_type: int
     tree_camera: TreeCamera
     course_tree: CourseTree
     info_box: VisualizerInfoBox
@@ -89,6 +204,8 @@ class MainScreenUI(UIManager):
     text_displayer: TextDisplayer
 
     course_spectrum_button: Button
+    course_tree_options: CourseTreeOptions
+    course_spectrum_slider: Slider
 
     # Private instance attributes:
     #   - _tree_ui_element: a Tree UI element storing the tree to be displayed
@@ -138,15 +255,6 @@ class MainScreenUI(UIManager):
         # TODO: remove once handle_event is implemented based on panel_output mode
         self.ui_components.append(self.summer_offering_button)
 
-        # construct the tree ui element from a TreeCamera and CourseTree
-        self.tree_camera = TreeCamera(self.info_box)
-        self.course_tree = CourseTree(None, -1, [])  # set course_tree to an empty tree as the default value
-        self._tree_ui_element = Tree(self.tree_camera, self.course_tree)
-
-        # append to ui_components list for handle_event to work properly
-        # TODO: remove once handle_event is implemented based on panel_output mode
-        self.ui_components.append(self._tree_ui_element)
-
         # course spectrum "Generate" button
         self.course_spectrum_button = Button(
             (165, 495),
@@ -158,6 +266,42 @@ class MainScreenUI(UIManager):
         # TODO: remove once handle_event is implemented based on panel_output mode
         self.ui_components.append(self.course_spectrum_button)
 
+        #########################
+        # Tree related elements #
+        #########################
+        # construct the tree ui element from a TreeCamera and CourseTree
+        self.tree_camera = TreeCamera(self.info_box)
+        self.course_tree = CourseTree(None, -1, [])  # set course_tree to an empty tree as the default value
+        self._tree_ui_element = Tree(self.tree_camera, self.course_tree)
+
+        # append to ui_components list for handle_event to work properly
+        # TODO: remove once handle_event is implemented based on panel_output mode
+        self.ui_components.append(self._tree_ui_element)
+
+        self.course_tree_options = CourseTreeOptions(
+            tree_type=CourseTreeOptions.PREREQ,
+            simplified=False
+        )
+
+        left_x = 45
+        right_x = 430
+        top_y = 400
+        bottom_y = 445
+        num_elements = 3
+        width = (right_x - left_x) // num_elements
+
+        # 45,430
+        self.course_spectrum_slider = Slider(
+        ["course_spec_slider1.png", "course_spec_slider2.png", "course_spec_slider3.png"],
+                [
+                    ((left_x + 0*width, top_y), (left_x + 1*width, bottom_y)),
+                    ((left_x + 1*width, top_y), (left_x + 2*width, bottom_y)),
+                    ((left_x + 2*width, top_y), (left_x + 3*width, bottom_y)),
+                ],
+            (384, 47)
+        )
+
+        self.ui_components.extend(self.course_spectrum_slider.option_buttons)
 
     def handle_event(self, ui_event):
         """Handles a UI event"""
@@ -182,6 +326,8 @@ class MainScreenUI(UIManager):
 
         ui_screen.blit(self._background_surface, (0, 0))
         self.visualizer_search_field.update_visually(ui_screen)
+        self.course_spectrum_slider.update_visually(ui_screen)
+        self.course_spectrum_slider.show_outline_for_debugging(ui_screen)
 
 class CourseManager:
     courses: list[tuple[str, int]]
@@ -257,6 +403,7 @@ class TextField(UIElement):
         # show outline of field
         pygame.draw.rect(ui_screen, (0, 0, 0), self.rect, 2)
 
+
 class Button(UIElement):
     top_left_cord: tuple
     bottom_right_cord: tuple
@@ -264,7 +411,7 @@ class Button(UIElement):
     rect: pygame.Rect
     on_click: Callable[[], None]  # TODO:i learned this today, ask group if okay
 
-    def __init__(self, top_left_cord: tuple, bottom_right_cord: tuple, on_click: Callable[[], None]):
+    def __init__(self, top_left_cord: tuple, bottom_right_cord: tuple, on_click: Callable[[], None]) -> None:
         self.is_pressed = False
         self.top_left_cord = top_left_cord
         self.bottom_right_cord = bottom_right_cord
@@ -1001,7 +1148,7 @@ if __name__ == '__main__':
                             main_screen_ui.panel_output_mode = MainScreenUI.TREE_OUTPUT
 
         if screen_mode == "start_screen":
-                screen.blit(start_page, (0, 0))
+            screen.blit(start_page, (0, 0))
         elif screen_mode == "course_selection":
             screen.blit(course_selection_page, (0, 0))
             course_selection_ui.update_visually(screen)
@@ -1040,13 +1187,15 @@ if __name__ == '__main__':
             #                             tree_camera.y_pos_tree), 300, tree_camera.zoom_factor,
             #                             tree_camera.node_course_code_map)
             # screen.blit(tree_visualizer_page, (0, 0))
-            # if app_state.current_tree_type == "prerequisite":
-            #     screen.blit(course_tree_type_slider_image[0],(74,181))
-            # else:
-            #     screen.blit(course_tree_type_slider_image[1], (74, 181))
-            #
-            # if app_state.is_current_tree_simplified:
-            #     screen.blit(selection_check_mark, (288,230))
+
+            if app_state.current_tree_type == "prerequisite":
+                screen.blit(course_tree_type_slider_image[0],(74,181))
+            else:
+                screen.blit(course_tree_type_slider_image[1], (74, 181))
+
+            if app_state.is_current_tree_simplified:
+                screen.blit(selection_check_mark, (288,230))
+
             #
             #
             # main_screen_ui.update_visually(screen)
