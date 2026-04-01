@@ -858,7 +858,7 @@ def generate_course_tree(course_code: str, tree_type: int, simplified: bool) -> 
             # get prereq tree
             prereq_tree = loader.get_prerequisite_tree(course_code)
             if simplified:
-                prereq_tree.simplify_tree(courses_taken)
+                prereq_tree = prereq_tree.get_simplified_tree(courses_taken)
             main_screen_ui.course_tree = prereq_tree
         else:
             # tree type is a postreq tree
