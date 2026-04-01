@@ -30,7 +30,6 @@ class CourseTree:
     _required_grade: int
     _root: Optional[Any]
     _subtrees: list[CourseTree]
-    _tree_type: str
 
     def __init__(self, root: Optional[Any], grade: int, subtrees: list[CourseTree]) -> None:
         """Initialize a new CourseTree with the given root value, grade, and subtrees.
@@ -44,7 +43,7 @@ class CourseTree:
         self._root = root
         self._required_grade = grade
         self._subtrees = subtrees
-        self._tree_type = "postrequisite"
+
 
     def is_leaf(self) -> bool:
         """Return whether the tree is a leaf"""
