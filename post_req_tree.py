@@ -28,7 +28,6 @@ def load_course_postrequisites(program: str) -> dict[str, list[str]]:
                 post_req_dict[code].append(course)
     return post_req_dict
 
-
 def fix_given_courses(courses: str) -> list:
     """clean the string and return a list of all the valid courses in the string"""
     codes = []
@@ -41,7 +40,6 @@ def fix_given_courses(courses: str) -> list:
         else:
             i += 1
     return codes
-
 
 def _build_tree(course_code: str, postrequisite_dict: dict[str, list[str]], depth: int) -> CourseTree:
     """Helper function! (not to use). Recursively build a post-requisite tree up to the given depth"""
@@ -78,7 +76,7 @@ class PostrequisiteTreeLoader:
 
 
 def all_items_in_tree(tree: CourseTree) -> set:
-    """Returns the all the item that is in the tree"""
+    """Returns all the items that is in the tree"""
     # use recursion to save in set, and return
     if tree.is_empty():
         return set()
@@ -99,6 +97,7 @@ def course_difference_tree(tree1: CourseTree, tree2: CourseTree):
     courses_exclusive_tree1, courses_exclusive_tree2 = courses1 - courses2, courses2 - courses1
     return {"course for both": courses1 | courses2, f"course exclusive for {tree1.get_root()}" : courses_exclusive_tree1,
             f"course exclusive for {tree2.get_root()}": courses_exclusive_tree2}
+
 
 # def get_direct_postrequisites(course_code: str, save_file: str) -> CourseTree:
 #     loader = PrerequisiteTreeLoader()
