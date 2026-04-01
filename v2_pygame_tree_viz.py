@@ -96,6 +96,19 @@ class CourseTreeOptions:
     simplified: bool = False
 
 
+@dataclass
+class CourseSpectrumOptions:
+    """
+    A class that contains a mapping from the course spectrum slider index
+    to metric name and whether a higher metric rating is better
+    """
+    idx_to_metric = {
+        0: ("overall_satisfaction", True),
+        1: ("workload", False),
+        2: ("cognitive_growth", True)
+    }
+
+
 class Slider(UIManager):
     """
     A class for a slider UI manager that handles toggling between multiple options
@@ -221,6 +234,9 @@ class MainScreenUI(UIManager):
     #   - summer_offering_button: a Button for the summer offerings feature
     #   - error_displayer: a TextDisplayer for displaying a red error message
     #   - text_displayer: a TextDisplayer for displaying regular plaintext output
+    #   - course_spectrum_slider: a Slider for selecting a metric
+    #   - course_spectrum_button: a Button to generate a tree based on course_spectrum_slider
+
     panel_output_mode: int
     tree_type: int
     tree_camera: TreeCamera
@@ -230,10 +246,12 @@ class MainScreenUI(UIManager):
     summer_offering_button: Button
     error_displayer: TextDisplayer
     text_displayer: TextDisplayer
-
     course_spectrum_button: Button
-    course_tree_options: CourseTreeOptions
     course_spectrum_slider: Slider
+    # TODO: add a slider to select b/w tree heatmap and optimal path
+
+    # TODO: use this and comment it
+    course_tree_options: CourseTreeOptions
 
     # Private instance attributes:
     #   - _tree_ui_element: a Tree UI element storing the tree to be displayed
@@ -283,17 +301,6 @@ class MainScreenUI(UIManager):
         # TODO: remove once handle_event is implemented based on panel_output mode
         self.ui_components.append(self.summer_offering_button)
 
-        # course spectrum "Generate" button
-        self.course_spectrum_button = Button(
-            (165, 495),
-            (315, 515),
-            lambda: generate_course_spectrum_tree(self.visualizer_search_field.input_text)
-        )
-
-        # append to ui_components list for handle_event to work properly
-        # TODO: remove once handle_event is implemented based on panel_output mode
-        self.ui_components.append(self.course_spectrum_button)
-
         #########################
         # Tree related elements #
         #########################
@@ -311,14 +318,25 @@ class MainScreenUI(UIManager):
             simplified=False
         )
 
+        ####################################
+        # Course Spectrum related elements #
+        ####################################
+
+        # x boundaries of the course spectrum slider
         left_x = 45
         right_x = 430
+
+        # y boundaries of the course spectrum slider
         top_y = 400
         bottom_y = 445
+
+        # there are three elements: overall_satisfaction, workload, and cognitive_growth
         num_elements = 3
+
+        # the width of each button in the slider
         width = (right_x - left_x) // num_elements
 
-        # 45,430
+        # create a Slider object to select a metric
         self.course_spectrum_slider = Slider(
         ["course_spec_slider1.png", "course_spec_slider2.png", "course_spec_slider3.png"],
                 [
@@ -330,6 +348,23 @@ class MainScreenUI(UIManager):
         )
 
         self.ui_components.append(self.course_spectrum_slider)
+
+        # course spectrum "Generate" button
+        # CourseSpectrumOptions contains a mapping from the metric slider's selected id to the metric name
+        # to look up in course_data_computed.json
+        self.course_spectrum_button = Button(
+            (165, 495),
+            (315, 515),
+            lambda: generate_course_spectrum_tree(
+                self.visualizer_search_field.input_text,
+                CourseSpectrumOptions.idx_to_metric[self.course_spectrum_slider.curr_selection][0],
+                CourseSpectrumOptions.idx_to_metric[self.course_spectrum_slider.curr_selection][1],
+            )
+        )
+
+        # append to ui_components list for handle_event to work properly
+        # TODO: remove once handle_event is implemented based on panel_output mode
+        self.ui_components.append(self.course_spectrum_button)
 
     def handle_event(self, ui_event):
         """Handles a UI event"""
@@ -712,7 +747,7 @@ def show_summer_offerings(course: str) -> None:
         main_screen_ui.panel_output_mode = MainScreenUI.TEXT_OUTPUT
 
 
-def generate_course_spectrum_tree(course: str):
+def generate_course_spectrum_tree(course: str, metric: str, higher_is_better: bool):
     """
     Display a course spectrum tree based on the given course code
     """
@@ -732,21 +767,33 @@ def generate_course_spectrum_tree(course: str):
         courses_taken_tuple = course_manager.get_courses()
         courses_taken = {}
 
+        # convert the courses_taken tuple returned by course_manager to a dict
         for key_val_pair in courses_taken_tuple:
             key, val = key_val_pair
             courses_taken[key] = val
+
+        # TODO: remove in final submission
+        # default values of courses_taken used for testing
+        courses_taken = {
+            'MAT137Y1': 100,
+            'CSC110Y1': 100,
+            'CSC111H1': 100,
+            'MAT223H1': 100,
+            'STA237H1': 100
+        }
 
         optimal_tree = optimal_path_to_course(
             loader,
             course,
             courses_taken,
-            "workload",
-            False
+            metric,
+            higher_is_better
         )
 
         main_screen_ui.course_tree = optimal_tree
         main_screen_ui.tree_camera.reset_camera()
         main_screen_ui.panel_output_mode = MainScreenUI.TREE_OUTPUT
+
 
 def ui_dev_mode(ui_screen, ui_event):
     # TODO:delete this before final submission

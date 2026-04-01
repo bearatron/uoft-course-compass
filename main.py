@@ -31,8 +31,8 @@ if __name__ == "__main__":
         simplified_tree = loader.get_simplified_tree(course, courses_taken)
         print(simplified_tree)
         print('=' * 6)
-        metric = "prof_quality"
-        higher_is_better = True
+        metric = "workload"
+        higher_is_better = False
         print(f"Ratings for {metric} ({"higher is better" if higher_is_better else "lower is better"}):")
         print(CourseRatingsTree.from_course_tree(simplified_tree, metric, higher_is_better))
         print('-' * 6)
