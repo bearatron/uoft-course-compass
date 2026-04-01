@@ -217,7 +217,7 @@ class MainScreenUI(UIManager):
     TREE_OUTPUT = 0
     TEXT_OUTPUT = 1
     ERROR_OUTPUT = 2
-    BG_PATH = "course_compass_main_v6.png"
+    BG_PATH = "course_compass_main_ui_v7.png"
 
     # Instance attributes:
     #   - panel_output_mode: an int representing what type of data the panel output should display
@@ -229,9 +229,12 @@ class MainScreenUI(UIManager):
     #   - summer_offering_button: a Button for the summer offerings feature
     #   - error_displayer: a TextDisplayer for displaying a red error message
     #   - text_displayer: a TextDisplayer for displaying regular plaintext output
-    #   - course_spectrum_slider: a Slider for selecting a metric
-    #   - course_spectrum_button: a Button to generate a tree based on course_spectrum_slider
-
+    #   - optimal_path_slider: a Slider for selecting a metric
+    #   - optimal_path_generate_button: a Button to generate a tree based on optimal_path_slider
+    #   - course_tree_options: a dataclass to store whether a prereq or postreq tree should be displayed
+    #   - course_tree_slider: a slider that allows the user to choose to display prereq or postreq tree
+    #   - course_tree_generate_button: a button that generates the course tree
+    #   - course_tree_simplify: a bool that dictates whether to simplify the tree if it's a prereq tree
     panel_output_mode: int
     tree_type: int
     tree_camera: TreeCamera
@@ -241,11 +244,8 @@ class MainScreenUI(UIManager):
     summer_offering_button: Button
     error_displayer: TextDisplayer
     text_displayer: TextDisplayer
-    course_spectrum_generate_button: Button
-    course_spectrum_slider: Slider
-    # TODO: add a slider to select b/w tree heatmap and optimal path
-
-    # TODO: use this and comment it
+    optimal_path_generate_button: Button
+    optimal_path_slider: Slider
     course_tree_options: CourseTreeOptions
     course_tree_slider: Slider
     course_tree_generate_button: Button
@@ -346,8 +346,8 @@ class MainScreenUI(UIManager):
         right_x = 430
 
         # y boundaries of the course spectrum slider
-        top_y = 400
-        bottom_y = 445
+        top_y = 410
+        bottom_y = 455
 
         # there are three elements: overall_satisfaction, workload, and cognitive_growth
         num_elements = 3
@@ -356,7 +356,7 @@ class MainScreenUI(UIManager):
         width = (right_x - left_x) // num_elements
 
         # create a Slider object to select a metric
-        self.course_spectrum_slider = Slider(
+        self.optimal_path_slider = Slider(
         ["course_spec_slider1.png", "course_spec_slider2.png", "course_spec_slider3.png"],
                 [
                     ((left_x + 0*width, top_y), (left_x + 1*width, bottom_y)),
@@ -366,24 +366,24 @@ class MainScreenUI(UIManager):
             (384, 47)
         )
 
-        self.ui_components.append(self.course_spectrum_slider)
+        self.ui_components.append(self.optimal_path_slider)
 
         # course spectrum "Generate" button
         # CourseSpectrumOptions contains a mapping from the metric slider's selected id to the metric name
         # to look up in course_data_computed.json
-        self.course_spectrum_generate_button = Button(
-            (165, 495),
-            (315, 515),
-            lambda: generate_course_spectrum_tree(
+        self.optimal_path_generate_button = Button(
+            (165, 478),
+            (315, 500),
+            lambda: generate_optimal_tree(
                 self.visualizer_search_field.input_text,
-                CourseSpectrumOptions.idx_to_metric[self.course_spectrum_slider.curr_selection][0],
-                CourseSpectrumOptions.idx_to_metric[self.course_spectrum_slider.curr_selection][1],
+                CourseSpectrumOptions.idx_to_metric[self.optimal_path_slider.curr_selection][0],
+                CourseSpectrumOptions.idx_to_metric[self.optimal_path_slider.curr_selection][1],
             )
         )
 
         # append to ui_components list for handle_event to work properly
         # TODO: remove once handle_event is implemented based on panel_output mode
-        self.ui_components.append(self.course_spectrum_generate_button)
+        self.ui_components.append(self.optimal_path_generate_button)
 
     def handle_event(self, ui_event):
         """Handles a UI event"""
@@ -416,8 +416,8 @@ class MainScreenUI(UIManager):
         self.course_tree_slider.show_outline_for_debugging(ui_screen)
         self.course_tree_generate_button.show_outline_for_debugging(ui_screen)
 
-        self.course_spectrum_slider.update_visually(ui_screen)
-        self.course_spectrum_slider.show_outline_for_debugging(ui_screen)
+        self.optimal_path_slider.update_visually(ui_screen)
+        self.optimal_path_slider.show_outline_for_debugging(ui_screen)
 
 class CourseManager:
     """
@@ -770,7 +770,7 @@ def show_summer_offerings(course: str) -> None:
         main_screen_ui.panel_output_mode = MainScreenUI.TEXT_OUTPUT
 
 
-def generate_course_spectrum_tree(course: str, metric: str, higher_is_better: bool):
+def generate_optimal_tree(course: str, metric: str, higher_is_better: bool):
     """
     Display a course spectrum tree based on the given course code
     """
@@ -1328,7 +1328,7 @@ if __name__ == '__main__':
 
             main_screen_ui.visualizer_search_field.show_outline_for_debugging(screen)
             main_screen_ui.summer_offering_button.show_outline_for_debugging(screen)
-            main_screen_ui.course_spectrum_generate_button.show_outline_for_debugging(screen)
+            main_screen_ui.optimal_path_generate_button.show_outline_for_debugging(screen)
 
             # if app_state.current_course_tree is not None:
             #     draw_tree_visualization(app_state.current_course_tree, (tree_camera.x_pos_tree,
