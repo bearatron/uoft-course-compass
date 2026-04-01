@@ -28,13 +28,16 @@ from course_tree import CourseTree
 # TREE VISUALIZATION HELPER FUNCTIONS
 # ---------------------------------------------------------------------
 # ---------------------------------------------------------------------
-def draw_node(display_vals: tuple[str | None, str], position: tuple[int,int], screen_zoom_factor: int,
-              node_course_code_map: list[tuple[pygame.Rect, str]]) -> None:
+def draw_node(display_vals: tuple[str, str], position: tuple[int,int], screen_zoom_factor: int,
+              node_course_code_map: list[tuple[pygame.Rect, str]], target_screen: pygame.Surface) -> None:
     """
     Draw a node on point (x_pos, y_pos) with text, display_val
+
+    Preconditions:
+    - screen_zoom_factor > 0
     """
-    # define rectangle size with respect to the screen_zoom_factor which scales the
-    # rectangle based on how zoomed in or out the user is
+    # Define rectangle size with respect to the screen_zoom_factor which scales the
+    # Rectangle based on how zoomed in or out the user is
     rect_width = int(200 * screen_zoom_factor)
     rect_height = int(50 * screen_zoom_factor)
 
@@ -44,14 +47,14 @@ def draw_node(display_vals: tuple[str | None, str], position: tuple[int,int], sc
     COURSE_CODE_INDEX = 0
     COURSE_MARK_INDEX = 1
 
-    #node is a pygame rect so that it can be drawn and interacted with later on
+    # Node is a pygame rect so that it can be drawn and interacted with later on
     node = pygame.Rect(x_pos, y_pos, rect_width, rect_height)
 
-    # adding node to a tuple list that maps node object with course code (display_val)
+    # Adding node to a tuple list that maps node object with course code (display_val)
     node_course_code_map.append((node, display_vals[COURSE_CODE_INDEX]))
 
     # Drawing rect to screen
-    pygame.draw.rect(screen,
+    pygame.draw.rect(target_screen,
                      (161, 202, 246),
                      node,
                      border_radius=int(15 * screen_zoom_factor))
@@ -59,20 +62,20 @@ def draw_node(display_vals: tuple[str | None, str], position: tuple[int,int], sc
     # Creating the node text font
     font_size = max(12, int(24 * screen_zoom_factor))
     node_font = pygame.font.Font("FjallaOne-Regular.ttf", font_size)
-    #creating node text
+    # Creating node text
     text_to_display = display_vals[COURSE_CODE_INDEX] + " " + display_vals[COURSE_MARK_INDEX]
     text_img = node_font.render(text_to_display, True, [0, 0, 0])
-    #get text rect so that text can be centered in the rect
+    # Get text rect so that text can be centered in the rect
     text_rect = text_img.get_rect()
-    # setting the text to the center of the node
+    # Setting the text to the center of the node
     text_rect.center = (x_pos + rect_width // 2, y_pos + rect_height // 2)
 
-    # displaying the node text
-    screen.blit(text_img, text_rect)
+    # Displaying the node text
+    target_screen.blit(text_img, text_rect)
 
 def tree_width(tree: CourseTree) -> int:
     """
-    returns width of tree (width of lowest layer of subtree)
+    Recursively return width of tree (width of the lowest layer of all subtrees)
     """
     if tree.is_empty():
         return 0
@@ -85,34 +88,56 @@ def tree_width(tree: CourseTree) -> int:
         return width_so_far
 
 
-def draw_tree_visualization(tree: CourseTree, positions: tuple[int,int], spacing_factor: int, zoom_factor: int,
-                            node_course_code_map: list[tuple[pygame.Rect, str]]):
+def draw_tree_visualization(tree: CourseTree, positions: tuple[int,int], spacing_factor: int, tree_zoom_factor: int,
+                            node_course_code_map: list[tuple[pygame.Rect, str]], target_screen: pygame.Surface):
+    """
+    Draw a CourseTree onto the screen as a hierarchical tree diagram. The function traverses the provided tree
+    recursively, drawing the current node and then its subtrees below it.
+
+    Preconditions:
+    - spacing_factor > 0
+    - tree_zoom_factor > 0
+    """
     if tree.is_empty():
         return
     else:
+        # Extract x,y positions from tuple
         x_pos = positions[0]
         y_pos = positions[1]
-        draw_node((tree.get_root(), tree.get_grade_requirement()), positions, zoom_factor, node_course_code_map)
-        total_spacing = tree_width(tree) * spacing_factor * zoom_factor
-        start_x_pos = x_pos - total_spacing // 2  # center children under parent
+        # Draw the node using the root value of the tree
+        draw_node((tree.get_root(), tree.get_grade_requirement()), positions, tree_zoom_factor, node_course_code_map)
+        # Determine total horizontal space needed for all children
+        total_spacing = tree_width(tree) * spacing_factor * tree_zoom_factor
+        # Start by placing children from the leftmost position so they are centered under the parent node
+        start_x_pos = x_pos - total_spacing // 2
 
         for subtree in tree.get_subtrees():
-            # horizontally place child node
-            subtree_width = tree_width(subtree) * spacing_factor * zoom_factor
-            child_x = start_x_pos + subtree_width // 2  # place child node in center of its allocated space
+            # Each subtree is given horizontal space based on its width
+            subtree_width = tree_width(subtree) * spacing_factor * tree_zoom_factor
+            # Place child node in center of its allocated space
+            child_x = start_x_pos + subtree_width // 2
 
-            # draw line from parent to child node
-            # TODO: magic nums: surface, color, start pos, end pos, width
+            # Constants for tree layout
+            NODE_WIDTH = 200
+            NODE_HEIGHT = 50
+            VERTICAL_SPACING = 150
+            LINE_THICKNESS = 4
+            LINE_COLOR = (0, 0, 0)
+
+            # Draw line from parent to child
             pygame.draw.line(
-                screen, (0, 0, 0),
-                (x_pos + int(100 * zoom_factor), y_pos + int(50 * zoom_factor)),
-                (child_x + int(100 * zoom_factor), y_pos + int(150 * zoom_factor)),
-                max(1, int(4 * zoom_factor))
+                target_screen, LINE_COLOR,
+                (x_pos + int(NODE_WIDTH / 2 * tree_zoom_factor),
+                 y_pos + int(NODE_HEIGHT * tree_zoom_factor)),
+                (child_x + int(NODE_WIDTH / 2 * tree_zoom_factor),
+                 y_pos + int(VERTICAL_SPACING * tree_zoom_factor)),
+                max(1, int(LINE_THICKNESS * tree_zoom_factor))
             )
 
-            draw_tree_visualization(subtree, (child_x, y_pos + int(150 * zoom_factor)), spacing_factor, zoom_factor,
-                                    node_course_code_map)
+            draw_tree_visualization(subtree, (child_x, y_pos + int(VERTICAL_SPACING  * tree_zoom_factor)), spacing_factor, tree_zoom_factor,
+                                    node_course_code_map, target_screen)
 
+            # Move to the next horizontal space for the next subtree
             start_x_pos += subtree_width
 
 
@@ -134,6 +159,7 @@ class AppState:
 #TODO: IS THIS GOOD CODE PRACTICE. add more attributes/complete ui element class
 class UIElement:
     def handle_interaction(self, ui_event: pygame.event.Event) -> None:
+        #TODO: raise not implement error
         return  # default: do nothing
 
     def update_visually(self, ui_screen: pygame.Surface) -> None:
