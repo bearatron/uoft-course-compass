@@ -81,7 +81,7 @@ class UIManager:
 @dataclass
 class CourseTreeOptions:
     """
-    Dataclass to store options
+    A class storing the selectable options
     """
     # Static attributes:
     #   - PREREQ: an int representing the fact that the tree type displayed should be a prereq tree
@@ -89,11 +89,6 @@ class CourseTreeOptions:
     PREREQ = 0
     POSTREQ = 1
 
-    # Instance attributes:
-    #   - tree_type: an int representing the tree type
-    #   - simplified: whether the course tree to be displayed is simplified or not
-    tree_type: int = PREREQ
-    simplified: bool = False
 
 
 @dataclass
@@ -246,12 +241,15 @@ class MainScreenUI(UIManager):
     summer_offering_button: Button
     error_displayer: TextDisplayer
     text_displayer: TextDisplayer
-    course_spectrum_button: Button
+    course_spectrum_generate_button: Button
     course_spectrum_slider: Slider
     # TODO: add a slider to select b/w tree heatmap and optimal path
 
     # TODO: use this and comment it
     course_tree_options: CourseTreeOptions
+    course_tree_slider: Slider
+    course_tree_generate_button: Button
+    course_tree_simplify: bool
 
     # Private instance attributes:
     #   - _tree_ui_element: a Tree UI element storing the tree to be displayed
@@ -301,9 +299,19 @@ class MainScreenUI(UIManager):
         # TODO: remove once handle_event is implemented based on panel_output mode
         self.ui_components.append(self.summer_offering_button)
 
-        #########################
-        # Tree related elements #
-        #########################
+        ################################
+        # Course Tree related elements #
+        ################################
+        self.course_tree_slider = Slider(
+            ["pre_post_req_slider1.png", "pre_post_req_slider2.png"],
+            [
+                ((75, 180), (240, 225)),
+                ((240, 180), (400, 225))
+            ],
+            (330, 47)
+        )
+        self.ui_components.append(self.course_tree_slider)
+
         # construct the tree ui element from a TreeCamera and CourseTree
         self.tree_camera = TreeCamera(self.info_box)
         self.course_tree = CourseTree(None, -1, [])  # set course_tree to an empty tree as the default value
@@ -313,10 +321,21 @@ class MainScreenUI(UIManager):
         # TODO: remove once handle_event is implemented based on panel_output mode
         self.ui_components.append(self._tree_ui_element)
 
-        self.course_tree_options = CourseTreeOptions(
-            tree_type=CourseTreeOptions.PREREQ,
-            simplified=False
+        self.course_tree_simplify = True  # TODO: make this based on checkbox
+
+        # course tree "Generate" button
+        # CourseTreeOptions contains a mapping from the prereq/postreq slider's selected id
+        # to look up in course_data_computed.json
+        self.course_tree_generate_button = Button(
+            (165, 275),
+            (315, 298),
+            lambda: generate_course_tree(
+                self.visualizer_search_field.input_text,
+                self.course_tree_slider.curr_selection,
+                self.course_tree_simplify
+            )
         )
+        self.ui_components.append(self.course_tree_generate_button)
 
         ####################################
         # Course Spectrum related elements #
@@ -352,7 +371,7 @@ class MainScreenUI(UIManager):
         # course spectrum "Generate" button
         # CourseSpectrumOptions contains a mapping from the metric slider's selected id to the metric name
         # to look up in course_data_computed.json
-        self.course_spectrum_button = Button(
+        self.course_spectrum_generate_button = Button(
             (165, 495),
             (315, 515),
             lambda: generate_course_spectrum_tree(
@@ -364,7 +383,7 @@ class MainScreenUI(UIManager):
 
         # append to ui_components list for handle_event to work properly
         # TODO: remove once handle_event is implemented based on panel_output mode
-        self.ui_components.append(self.course_spectrum_button)
+        self.ui_components.append(self.course_spectrum_generate_button)
 
     def handle_event(self, ui_event):
         """Handles a UI event"""
@@ -388,9 +407,15 @@ class MainScreenUI(UIManager):
 
         ui_screen.blit(self._background_surface, (0, 0))
         self.visualizer_search_field.update_visually(ui_screen)
+
         # display the info pannel on top of everything
         if self.panel_output_mode == MainScreenUI.TREE_OUTPUT:
             self.info_box.update_visually(ui_screen)  # TODO: THIRD BUG FIX
+
+        self.course_tree_slider.update_visually(ui_screen)
+        self.course_tree_slider.show_outline_for_debugging(ui_screen)
+        self.course_tree_generate_button.show_outline_for_debugging(ui_screen)
+
         self.course_spectrum_slider.update_visually(ui_screen)
         self.course_spectrum_slider.show_outline_for_debugging(ui_screen)
 
@@ -713,8 +738,6 @@ def add_course_to_list(course_manager_to_update: CourseManager, taken_course_cod
     course_grade = int(course_mark)
     course_manager_to_update.add_course(taken_course_code, course_grade)
 
-def course_spectrum_optimal_path():
-    ...
 
 def show_summer_offerings(course: str) -> None:
     """
@@ -791,6 +814,61 @@ def generate_course_spectrum_tree(course: str, metric: str, higher_is_better: bo
         )
 
         main_screen_ui.course_tree = optimal_tree
+        main_screen_ui.tree_camera.reset_camera()
+        main_screen_ui.panel_output_mode = MainScreenUI.TREE_OUTPUT
+
+
+def generate_course_tree(course_code: str, tree_type: int, simplified: bool) -> None:
+    """
+    Generate a course tree given a course code and tree type
+    simplified dictates whether the tree is simplified
+    we do not simplify the course tree if it's a postrequisite tree
+
+    Preconditions:
+        - tree_type in {CourseTreeOptions.PREREQ, CourseTreeOptions.POSTREQ}
+    """
+    courses_taken_tuple = course_manager.get_courses()
+    courses_taken = {}
+
+    # TODO: remove in final submission
+    # default values of courses_taken used for testing
+    courses_taken = {
+        'MAT137Y1': 100,
+        'CSC110Y1': 100,
+        'CSC111H1': 100,
+        'MAT223H1': 100,
+        'STA237H1': 100
+    }
+
+    # convert the courses_taken tuple returned by course_manager to a dict
+    for key_val_pair in courses_taken_tuple:
+        key, val = key_val_pair
+        courses_taken[key] = val
+
+    try:
+        if tree_type == CourseTreeOptions.PREREQ:
+            # get prereq tree
+            prereq_tree = loader.get_prerequisite_tree(course_code)
+            if simplified:
+                prereq_tree.simplify_tree(courses_taken)
+            main_screen_ui.course_tree = prereq_tree
+        else:
+            # tree type is a postreq tree
+            # we do not simplify the course tree if it's a postrequisite tree
+            postreq_tree = loader.get_postrequisite_tree(course_code)
+            main_screen_ui.course_tree = postreq_tree
+    except CourseNotFoundError:
+        # handle errors by setting the error display text
+        if course_code == "":
+            main_screen_ui.error_displayer.display_text = "Please enter a non-empty course code"
+        else:
+            main_screen_ui.error_displayer.display_text = \
+                f"The course '{course_code}' is invalid or doesn't exist"
+
+        # change panel output mode to error output
+        main_screen_ui.panel_output_mode = MainScreenUI.ERROR_OUTPUT
+    else:
+        # set panel output mode to tree output
         main_screen_ui.tree_camera.reset_camera()
         main_screen_ui.panel_output_mode = MainScreenUI.TREE_OUTPUT
 
@@ -1215,23 +1293,7 @@ if __name__ == '__main__':
                 # TODO: error check input
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_RETURN:
-                        course_code = main_screen_ui.visualizer_search_field.input_text
-                        try:
-                            main_screen_ui.course_tree = loader.get_prerequisite_tree(course_code)
-                        except CourseNotFoundError:
-                            # handle errors by setting the error display text
-                            if course_code == "":
-                                main_screen_ui.error_displayer.display_text = "Please enter a non-empty course code"
-                            else:
-                                main_screen_ui.error_displayer.display_text = \
-                                    f"The course '{course_code}' is invalid or doesn't exist"
-
-                            # change panel output mode to error output
-                            main_screen_ui.panel_output_mode = MainScreenUI.ERROR_OUTPUT
-                        else:
-                            # set panel output mode to tree output
-                            main_screen_ui.tree_camera.reset_camera()
-                            main_screen_ui.panel_output_mode = MainScreenUI.TREE_OUTPUT
+                        pass
 
         if screen_mode == "start_screen":
             screen.blit(start_page, (0, 0))
@@ -1266,7 +1328,7 @@ if __name__ == '__main__':
 
             main_screen_ui.visualizer_search_field.show_outline_for_debugging(screen)
             main_screen_ui.summer_offering_button.show_outline_for_debugging(screen)
-            main_screen_ui.course_spectrum_button.show_outline_for_debugging(screen)
+            main_screen_ui.course_spectrum_generate_button.show_outline_for_debugging(screen)
 
             # if app_state.current_course_tree is not None:
             #     draw_tree_visualization(app_state.current_course_tree, (tree_camera.x_pos_tree,
@@ -1274,10 +1336,10 @@ if __name__ == '__main__':
             #                             tree_camera.node_course_code_map)
             # screen.blit(tree_visualizer_page, (0, 0))
 
-            if app_state.current_tree_type == "prerequisite":
-                screen.blit(course_tree_type_slider_image[0],(74,181))
-            else:
-                screen.blit(course_tree_type_slider_image[1], (74, 181))
+            # if app_state.current_tree_type == "prerequisite":
+            #     screen.blit(course_tree_type_slider_image[0],(74,181))
+            # else:
+            #     screen.blit(course_tree_type_slider_image[1], (74, 181))
 
             if app_state.is_current_tree_simplified:
                 screen.blit(selection_check_mark, (288,230))
