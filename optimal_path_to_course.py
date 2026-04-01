@@ -27,7 +27,9 @@ def optimal_path_to_course(
         - metric_name must be under average_metrics or grouped_metrics in course_data_computed.json
     """
     # get the simplified course tree based on courses taken
-    tree = loader.get_simplified_tree(course_code, courses_taken)
+    tree = loader.get_prerequisite_tree(course_code)
+    tree = tree.get_simplified_tree(courses_taken)
+
 
     # convert it to a CourseRatingsTree
     ratings_tree = CourseRatingsTree.from_course_tree(tree, metric_name, higher_is_better)
