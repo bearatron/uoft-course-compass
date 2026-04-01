@@ -21,6 +21,7 @@ from course_tree import CourseTree
 #------------------------------------------#
 #------------------------------------------#
 #------------------------------------------#
+#TODO: APPSTATE maybe not needed
 @dataclass
 class AppState:
     # for rep invairants add that tree type is either pre req or post req
@@ -29,29 +30,53 @@ class AppState:
     is_current_tree_simplified: bool = False
 
 class UIElement:
+    """
+    An abstract class representing a generic UI element.
+
+    UIElement objects define the common interface for all interactive and
+    drawable UI components in the program, such as buttons, text fields,
+    trees, and info boxes.
+    """
+
     def handle_interaction(self, ui_event: pygame.event.Event) -> None:
-        #TODO: raise not implement error
-        return  # default: do nothing
+        """
+        Handle a pygame event related to this UI element.
+        """
+        raise NotImplementedError
 
     def update_visually(self, ui_screen: pygame.Surface) -> None:
-        return  # default: do nothing
+        """
+        Draw or update the UI element on the given screen surface.
+        """
+        raise NotImplementedError
 
 class UIManager:
-    ui_components: list[UIElement | UIManager]
+    """
+    A class responsible for managing a collection of UI elements.
+    The class stores UI elements and provides methods to pass
+    events and drawing updates to each component.
 
+    Instance Attributes:
+        - ui_components: a list of UIElement objects managed by this UIManager
+    """
+    ui_components: list[UIElement]
     def __init__(self):
+        """Initialize a new UI Manager object"""
         self.ui_components = []
 
     def add(self, element):
+        """Add a UI element to the manager"""
         self.ui_components.append(element)
 
     def handle_event(self, ui_event):
+        """Pass a pygame event to every managed UI element"""
         for item in self.ui_components:
             item.handle_interaction(ui_event)
 
     def update_visually(self, ui_screen):
-        for e in self.ui_components:
-            e.update_visually(ui_screen)
+        """visually update appearance of every managed UI element."""
+        for item in self.ui_components:
+            item.update_visually(ui_screen)
 
 @dataclass
 class CourseTreeOptions:
@@ -315,7 +340,6 @@ class MainScreenUI(UIManager):
 
         if self.panel_output_mode == MainScreenUI.TREE_OUTPUT:
             self._tree_ui_element.update_visually(ui_screen) #TODO; second bug fix
-            self.info_box.update_visually(ui_screen) #TODO: THIRD BUG FIX
         elif self.panel_output_mode == MainScreenUI.TEXT_OUTPUT:
             self.text_displayer.update_visually(ui_screen)
         elif self.panel_output_mode == MainScreenUI.ERROR_OUTPUT:
@@ -325,24 +349,30 @@ class MainScreenUI(UIManager):
 
         ui_screen.blit(self._background_surface, (0, 0))
         self.visualizer_search_field.update_visually(ui_screen)
+        # display the info pannel on top of everything
+        if self.panel_output_mode == MainScreenUI.TREE_OUTPUT:
+            self.info_box.update_visually(ui_screen)  # TODO: THIRD BUG FIX
         self.course_spectrum_slider.update_visually(ui_screen)
         self.course_spectrum_slider.show_outline_for_debugging(ui_screen)
 
 class CourseManager:
+    """
+
+    """
     courses: list[tuple[str, int]]
     def __init__(self):
         self.courses = []  # list of (course_code, grade)
 
-    def add_course(self, code: str, grade: int):
-        self.courses.append((code, grade))
+    def add_course(self, code: str, course_grade: int):
+        self.courses.append((code, course_grade))
 
     def get_courses(self):
         return self.courses
 
     def get_dict(self) -> dict[str, int]:  # TODO: Get rid of this later
         dictionary = {}
-        for course in self.courses:
-            dictionary[course[0]] = course[1]
+        for current_course_code in self.courses:
+            dictionary[current_course_code[0]] = course[1]
 
         return dictionary
 
@@ -429,6 +459,8 @@ class Button(UIElement):
             if self.is_pressed:
                 self.on_click()
             self.is_pressed = False
+    def update_visually(self, ui_screen: pygame.Surface) -> None:
+        return
 
     def show_outline_for_debugging(self, ui_screen: pygame.Surface) -> None:
 
@@ -569,6 +601,8 @@ class TextDisplayer(UIElement):
             ui_screen,
             self.color
         )
+    def handle_interaction(self, ui_event: pygame.event.Event) -> None:
+        return
 
 
 def score_visualizer(score: int, y_pos: int, star_image, ui_screen) -> None:
@@ -945,9 +979,8 @@ class TreeCamera:
         if mouse_event.type == pygame.MOUSEBUTTONUP:
             if mouse_event.button == 1:
                 self.dragging = False
+                current_mouse_pos = pygame.mouse.get_pos()
                 if self.code_clicked is not None:
-
-                    current_mouse_pos = pygame.mouse.get_pos()
                     displacement_x = current_mouse_pos[0] - self.initial_mouse_down_pos[0]
                     displacement_y = current_mouse_pos[1] - self.initial_mouse_down_pos[1]
 
@@ -956,6 +989,9 @@ class TreeCamera:
                         self.course_info_box.is_enabled = True
                         self.update_info_box()
                     self.code_clicked = None
+                # if x_pos is on the white space, and its clicking ourside a course, info pannel closes
+                elif current_mouse_pos[0] >= 475:
+                    self.course_info_box.is_enabled = False
 
     def reset_camera(self):
         self.__init__(self.course_info_box)
