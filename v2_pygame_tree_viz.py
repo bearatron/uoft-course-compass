@@ -290,6 +290,7 @@ class MainScreenUI(UIManager):
         # TODO: remove once handle_event is implemented based on panel_output mode
         self.ui_components.append(self.visualizer_search_field)
 
+        # create summer offerings button
         self.summer_offering_button = Button(
             (272, 575),
             (424, 600),
@@ -405,12 +406,15 @@ class MainScreenUI(UIManager):
         else:
             print("!!! No valid screen panel output mode was set !!!")
 
+        # TODO: delete show_outline_for_debugging before submission
         ui_screen.blit(self._background_surface, (0, 0))
-        self.visualizer_search_field.update_visually(ui_screen)
 
-        # display the info pannel on top of everything
-        if self.panel_output_mode == MainScreenUI.TREE_OUTPUT:
-            self.info_box.update_visually(ui_screen)  # TODO: THIRD BUG FIX
+        # show buttons to screen
+        self.summer_offering_button.show_outline_for_debugging(ui_screen)
+        self.optimal_path_generate_button.show_outline_for_debugging(ui_screen)
+
+        self.visualizer_search_field.update_visually(ui_screen)
+        self.visualizer_search_field.show_outline_for_debugging(ui_screen)
 
         self.course_tree_slider.update_visually(ui_screen)
         self.course_tree_slider.show_outline_for_debugging(ui_screen)
@@ -418,6 +422,10 @@ class MainScreenUI(UIManager):
 
         self.optimal_path_slider.update_visually(ui_screen)
         self.optimal_path_slider.show_outline_for_debugging(ui_screen)
+
+        # draw the info panel last, as it should be displayed on top of everything
+        if self.panel_output_mode == MainScreenUI.TREE_OUTPUT:
+            self.info_box.update_visually(ui_screen)  # TODO: THIRD BUG FIX
 
 class CourseManager:
     """
@@ -1325,10 +1333,6 @@ if __name__ == '__main__':
             screen.fill((255, 255, 255))
 
             main_screen_ui.update_visually(screen)
-
-            main_screen_ui.visualizer_search_field.show_outline_for_debugging(screen)
-            main_screen_ui.summer_offering_button.show_outline_for_debugging(screen)
-            main_screen_ui.optimal_path_generate_button.show_outline_for_debugging(screen)
 
             # if app_state.current_course_tree is not None:
             #     draw_tree_visualization(app_state.current_course_tree, (tree_camera.x_pos_tree,
