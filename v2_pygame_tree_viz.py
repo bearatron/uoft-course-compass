@@ -81,7 +81,7 @@ class UIManager:
 @dataclass
 class CourseTreeOptions:
     """
-    Dataclass to store options
+    A class storing the selectable options
     """
     # Static attributes:
     #   - PREREQ: an int representing the fact that the tree type displayed should be a prereq tree
@@ -89,11 +89,19 @@ class CourseTreeOptions:
     PREREQ = 0
     POSTREQ = 1
 
-    # Instance attributes:
-    #   - tree_type: an int representing the tree type
-    #   - simplified: whether the course tree to be displayed is simplified or not
-    tree_type: int = PREREQ
-    simplified: bool = False
+
+
+@dataclass
+class CourseSpectrumOptions:
+    """
+    A class that contains a mapping from the course spectrum slider index
+    to metric name and whether a higher metric rating is better
+    """
+    idx_to_metric = {
+        0: ("overall_satisfaction", True),
+        1: ("workload", False),
+        2: ("cognitive_growth", True)
+    }
 
 
 class Slider(UIManager):
@@ -209,7 +217,7 @@ class MainScreenUI(UIManager):
     TREE_OUTPUT = 0
     TEXT_OUTPUT = 1
     ERROR_OUTPUT = 2
-    BG_PATH = "course_compass_main_v6.png"
+    BG_PATH = "course_compass_main_ui_v7.png"
 
     # Instance attributes:
     #   - panel_output_mode: an int representing what type of data the panel output should display
@@ -221,6 +229,12 @@ class MainScreenUI(UIManager):
     #   - summer_offering_button: a Button for the summer offerings feature
     #   - error_displayer: a TextDisplayer for displaying a red error message
     #   - text_displayer: a TextDisplayer for displaying regular plaintext output
+    #   - optimal_path_slider: a Slider for selecting a metric
+    #   - optimal_path_generate_button: a Button to generate a tree based on optimal_path_slider
+    #   - course_tree_options: a dataclass to store whether a prereq or postreq tree should be displayed
+    #   - course_tree_slider: a slider that allows the user to choose to display prereq or postreq tree
+    #   - course_tree_generate_button: a button that generates the course tree
+    #   - course_tree_simplify: a bool that dictates whether to simplify the tree if it's a prereq tree
     panel_output_mode: int
     tree_type: int
     tree_camera: TreeCamera
@@ -230,10 +244,12 @@ class MainScreenUI(UIManager):
     summer_offering_button: Button
     error_displayer: TextDisplayer
     text_displayer: TextDisplayer
-
-    course_spectrum_button: Button
+    optimal_path_generate_button: Button
+    optimal_path_slider: Slider
     course_tree_options: CourseTreeOptions
-    course_spectrum_slider: Slider
+    course_tree_slider: Slider
+    course_tree_generate_button: Button
+    course_tree_simplify: bool
 
     # Private instance attributes:
     #   - _tree_ui_element: a Tree UI element storing the tree to be displayed
@@ -283,20 +299,19 @@ class MainScreenUI(UIManager):
         # TODO: remove once handle_event is implemented based on panel_output mode
         self.ui_components.append(self.summer_offering_button)
 
-        # course spectrum "Generate" button
-        self.course_spectrum_button = Button(
-            (165, 495),
-            (315, 515),
-            lambda: generate_course_spectrum_tree(self.visualizer_search_field.input_text)
+        ################################
+        # Course Tree related elements #
+        ################################
+        self.course_tree_slider = Slider(
+            ["pre_post_req_slider1.png", "pre_post_req_slider2.png"],
+            [
+                ((75, 180), (240, 225)),
+                ((240, 180), (400, 225))
+            ],
+            (330, 47)
         )
+        self.ui_components.append(self.course_tree_slider)
 
-        # append to ui_components list for handle_event to work properly
-        # TODO: remove once handle_event is implemented based on panel_output mode
-        self.ui_components.append(self.course_spectrum_button)
-
-        #########################
-        # Tree related elements #
-        #########################
         # construct the tree ui element from a TreeCamera and CourseTree
         self.tree_camera = TreeCamera(self.info_box)
         self.course_tree = CourseTree(None, -1, [])  # set course_tree to an empty tree as the default value
@@ -306,20 +321,42 @@ class MainScreenUI(UIManager):
         # TODO: remove once handle_event is implemented based on panel_output mode
         self.ui_components.append(self._tree_ui_element)
 
-        self.course_tree_options = CourseTreeOptions(
-            tree_type=CourseTreeOptions.PREREQ,
-            simplified=False
-        )
+        self.course_tree_simplify = True  # TODO: make this based on checkbox
 
+        # course tree "Generate" button
+        # CourseTreeOptions contains a mapping from the prereq/postreq slider's selected id
+        # to look up in course_data_computed.json
+        self.course_tree_generate_button = Button(
+            (165, 275),
+            (315, 298),
+            lambda: generate_course_tree(
+                self.visualizer_search_field.input_text,
+                self.course_tree_slider.curr_selection,
+                self.course_tree_simplify
+            )
+        )
+        self.ui_components.append(self.course_tree_generate_button)
+
+        ####################################
+        # Course Spectrum related elements #
+        ####################################
+
+        # x boundaries of the course spectrum slider
         left_x = 45
         right_x = 430
-        top_y = 400
-        bottom_y = 445
+
+        # y boundaries of the course spectrum slider
+        top_y = 410
+        bottom_y = 455
+
+        # there are three elements: overall_satisfaction, workload, and cognitive_growth
         num_elements = 3
+
+        # the width of each button in the slider
         width = (right_x - left_x) // num_elements
 
-        # 45,430
-        self.course_spectrum_slider = Slider(
+        # create a Slider object to select a metric
+        self.optimal_path_slider = Slider(
         ["course_spec_slider1.png", "course_spec_slider2.png", "course_spec_slider3.png"],
                 [
                     ((left_x + 0*width, top_y), (left_x + 1*width, bottom_y)),
@@ -329,7 +366,24 @@ class MainScreenUI(UIManager):
             (384, 47)
         )
 
-        self.ui_components.append(self.course_spectrum_slider)
+        self.ui_components.append(self.optimal_path_slider)
+
+        # course spectrum "Generate" button
+        # CourseSpectrumOptions contains a mapping from the metric slider's selected id to the metric name
+        # to look up in course_data_computed.json
+        self.optimal_path_generate_button = Button(
+            (165, 478),
+            (315, 500),
+            lambda: generate_optimal_tree(
+                self.visualizer_search_field.input_text,
+                CourseSpectrumOptions.idx_to_metric[self.optimal_path_slider.curr_selection][0],
+                CourseSpectrumOptions.idx_to_metric[self.optimal_path_slider.curr_selection][1],
+            )
+        )
+
+        # append to ui_components list for handle_event to work properly
+        # TODO: remove once handle_event is implemented based on panel_output mode
+        self.ui_components.append(self.optimal_path_generate_button)
 
     def handle_event(self, ui_event):
         """Handles a UI event"""
@@ -353,11 +407,17 @@ class MainScreenUI(UIManager):
 
         ui_screen.blit(self._background_surface, (0, 0))
         self.visualizer_search_field.update_visually(ui_screen)
+
         # display the info pannel on top of everything
         if self.panel_output_mode == MainScreenUI.TREE_OUTPUT:
             self.info_box.update_visually(ui_screen)  # TODO: THIRD BUG FIX
-        self.course_spectrum_slider.update_visually(ui_screen)
-        self.course_spectrum_slider.show_outline_for_debugging(ui_screen)
+
+        self.course_tree_slider.update_visually(ui_screen)
+        self.course_tree_slider.show_outline_for_debugging(ui_screen)
+        self.course_tree_generate_button.show_outline_for_debugging(ui_screen)
+
+        self.optimal_path_slider.update_visually(ui_screen)
+        self.optimal_path_slider.show_outline_for_debugging(ui_screen)
 
 class CourseManager:
     """
@@ -678,8 +738,6 @@ def add_course_to_list(course_manager_to_update: CourseManager, taken_course_cod
     course_grade = int(course_mark)
     course_manager_to_update.add_course(taken_course_code, course_grade)
 
-def course_spectrum_optimal_path():
-    ...
 
 def show_summer_offerings(course: str) -> None:
     """
@@ -712,7 +770,7 @@ def show_summer_offerings(course: str) -> None:
         main_screen_ui.panel_output_mode = MainScreenUI.TEXT_OUTPUT
 
 
-def generate_course_spectrum_tree(course: str):
+def generate_optimal_tree(course: str, metric: str, higher_is_better: bool):
     """
     Display a course spectrum tree based on the given course code
     """
@@ -732,21 +790,88 @@ def generate_course_spectrum_tree(course: str):
         courses_taken_tuple = course_manager.get_courses()
         courses_taken = {}
 
+        # convert the courses_taken tuple returned by course_manager to a dict
         for key_val_pair in courses_taken_tuple:
             key, val = key_val_pair
             courses_taken[key] = val
+
+        # TODO: remove in final submission
+        # default values of courses_taken used for testing
+        courses_taken = {
+            'MAT137Y1': 100,
+            'CSC110Y1': 100,
+            'CSC111H1': 100,
+            'MAT223H1': 100,
+            'STA237H1': 100
+        }
 
         optimal_tree = optimal_path_to_course(
             loader,
             course,
             courses_taken,
-            "workload",
-            False
+            metric,
+            higher_is_better
         )
 
         main_screen_ui.course_tree = optimal_tree
         main_screen_ui.tree_camera.reset_camera()
         main_screen_ui.panel_output_mode = MainScreenUI.TREE_OUTPUT
+
+
+def generate_course_tree(course_code: str, tree_type: int, simplified: bool) -> None:
+    """
+    Generate a course tree given a course code and tree type
+    simplified dictates whether the tree is simplified
+    we do not simplify the course tree if it's a postrequisite tree
+
+    Preconditions:
+        - tree_type in {CourseTreeOptions.PREREQ, CourseTreeOptions.POSTREQ}
+    """
+    courses_taken_tuple = course_manager.get_courses()
+    courses_taken = {}
+
+    # TODO: remove in final submission
+    # default values of courses_taken used for testing
+    courses_taken = {
+        'MAT137Y1': 100,
+        'CSC110Y1': 100,
+        'CSC111H1': 100,
+        'MAT223H1': 100,
+        'STA237H1': 100
+    }
+
+    # convert the courses_taken tuple returned by course_manager to a dict
+    for key_val_pair in courses_taken_tuple:
+        key, val = key_val_pair
+        courses_taken[key] = val
+
+    try:
+        if tree_type == CourseTreeOptions.PREREQ:
+            # get prereq tree
+            prereq_tree = loader.get_prerequisite_tree(course_code)
+            if simplified:
+                prereq_tree.simplify_tree(courses_taken)
+            main_screen_ui.course_tree = prereq_tree
+        else:
+            # tree type is a postreq tree
+            # we do not simplify the course tree if it's a postrequisite tree
+            postreq_tree = loader.get_postrequisite_tree(course_code)
+            main_screen_ui.course_tree = postreq_tree
+    except CourseNotFoundError:
+        # handle errors by setting the error display text
+        if course_code == "":
+            main_screen_ui.error_displayer.display_text = "Please enter a non-empty course code"
+        else:
+            main_screen_ui.error_displayer.display_text = \
+                f"The course '{course_code}' is invalid or doesn't exist"
+
+        # change panel output mode to error output
+        main_screen_ui.panel_output_mode = MainScreenUI.ERROR_OUTPUT
+    else:
+        # set panel output mode to tree output
+        main_screen_ui.tree_camera.reset_camera()
+        main_screen_ui.panel_output_mode = MainScreenUI.TREE_OUTPUT
+
 
 def ui_dev_mode(ui_screen, ui_event):
     # TODO:delete this before final submission
@@ -1168,23 +1293,7 @@ if __name__ == '__main__':
                 # TODO: error check input
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_RETURN:
-                        course_code = main_screen_ui.visualizer_search_field.input_text
-                        try:
-                            main_screen_ui.course_tree = loader.get_prerequisite_tree(course_code)
-                        except CourseNotFoundError:
-                            # handle errors by setting the error display text
-                            if course_code == "":
-                                main_screen_ui.error_displayer.display_text = "Please enter a non-empty course code"
-                            else:
-                                main_screen_ui.error_displayer.display_text = \
-                                    f"The course '{course_code}' is invalid or doesn't exist"
-
-                            # change panel output mode to error output
-                            main_screen_ui.panel_output_mode = MainScreenUI.ERROR_OUTPUT
-                        else:
-                            # set panel output mode to tree output
-                            main_screen_ui.tree_camera.reset_camera()
-                            main_screen_ui.panel_output_mode = MainScreenUI.TREE_OUTPUT
+                        pass
 
         if screen_mode == "start_screen":
             screen.blit(start_page, (0, 0))
@@ -1219,7 +1328,7 @@ if __name__ == '__main__':
 
             main_screen_ui.visualizer_search_field.show_outline_for_debugging(screen)
             main_screen_ui.summer_offering_button.show_outline_for_debugging(screen)
-            main_screen_ui.course_spectrum_button.show_outline_for_debugging(screen)
+            main_screen_ui.optimal_path_generate_button.show_outline_for_debugging(screen)
 
             # if app_state.current_course_tree is not None:
             #     draw_tree_visualization(app_state.current_course_tree, (tree_camera.x_pos_tree,
@@ -1227,10 +1336,10 @@ if __name__ == '__main__':
             #                             tree_camera.node_course_code_map)
             # screen.blit(tree_visualizer_page, (0, 0))
 
-            if app_state.current_tree_type == "prerequisite":
-                screen.blit(course_tree_type_slider_image[0],(74,181))
-            else:
-                screen.blit(course_tree_type_slider_image[1], (74, 181))
+            # if app_state.current_tree_type == "prerequisite":
+            #     screen.blit(course_tree_type_slider_image[0],(74,181))
+            # else:
+            #     screen.blit(course_tree_type_slider_image[1], (74, 181))
 
             if app_state.is_current_tree_simplified:
                 screen.blit(selection_check_mark, (288,230))
