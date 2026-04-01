@@ -21,6 +21,7 @@ from course_tree import CourseTree
 # Bug with if i click ui, then the behind layer of course tree might also be clicked.
 # clean out useless images from file
 # make var private/public - basically good class practices
+# I feel like global vars are okay for specific state thing, but what if i make a struct for all states
 # ---------------------------------------------------------------------
 # ---------------------------------------------------------------------
 # TREE VISUALIZATION HELPER FUNCTIONS
@@ -110,6 +111,13 @@ def draw_tree_visualization(tree: CourseTree, x_pos: int, y_pos: int, spacing_fa
 # UI Classes
 # ---------------------------------------------------------------------
 # ---------------------------------------------------------------------
+@dataclass
+class AppState:
+    # for rep invairants add that tree type is either pre req or post req
+    current_course_tree: CourseTree | None = None
+    current_tree_type: str = "prerequisite"
+    is_current_tree_simplified: bool = False
+
 # TODO: type annotations are not specified for some methods in this block, a contract in the form of an interface is
 # needed to state what a ui item is i.e button/textfield
 # TODO: specify the contents of collections ie dict in type anotations
@@ -535,6 +543,18 @@ def ui_dev_mode(ui_screen, ui_event):
 
     if ui_event.type == pygame.MOUSEBUTTONDOWN:
         print(x, y)
+def set_prereq_tree():
+    app_state.current_tree_type = "prerequisite"
+
+def set_postreq_tree():
+    app_state.current_tree_type = "postrequisite"
+def set_simplified_tree():
+    if app_state.is_current_tree_simplified:
+        app_state.is_current_tree_simplified = False
+    else:
+        app_state.is_current_tree_simplified = True
+#def generate_course_tree():
+
 
 if __name__ == '__main__':
 
@@ -570,9 +590,6 @@ if __name__ == '__main__':
     course_selection_page = pygame.image.load(
         "course_compass_course_selection_v3.png")
     course_selection_page = pygame.transform.smoothscale(course_selection_page, (1440, 780))
-    # For Shayan's Use Later
-    # image2 = pygame.image.load("course_compass_course_selection_page.png")
-    # image2 = pygame.transform.smoothscale(image2, (1440, 780))
 
     dev_mode_event = 0  # TODO:delete before final submission
 
@@ -584,16 +601,62 @@ if __name__ == '__main__':
     summer_offering_button = Button(
         (272, 731),
         (424, 752),
-        lambda: show_summer_offerings(visualizer_search_field.input_text),
+        lambda: show_summer_offerings(visualizer_search_field.input_text)
     )
+    pre_req_button = Button(
+        (79, 184),
+        (214, 224),
+        set_prereq_tree
+    )
+    post_req_button = Button(
+        (245, 183),
+        (400, 221),
+        set_postreq_tree
+    )
+    simplify_tree_button = Button((285,237),(308,259), set_simplified_tree)
+
+    generate_tree_button = Button((164,276),(314,294), set_simplified_tree)
+
     main_screen_text_displayer = TextDisplayer("", 100, 500)
     main_screen_ui.add(visualizer_search_field)
     main_screen_ui.add(info_box)
     main_screen_ui.add(summer_offering_button)
     main_screen_ui.add(main_screen_text_displayer)
+    main_screen_ui.add(post_req_button)
+    main_screen_ui.add(pre_req_button)
+    main_screen_ui.add(simplify_tree_button)
+    main_screen_ui.add(generate_tree_button)
+
+    course_spec_slider1 = pygame.image.load(
+        "course_spec_slider1.png")
+    course_spec_slider1 = pygame.transform.smoothscale(course_spec_slider1, (384, 47))
+
+    course_spec_slider2 = pygame.image.load(
+        "course_spec_slider2.png")
+    course_spec_slider2 = pygame.transform.smoothscale(course_spec_slider2, (384, 47))
+
+    course_spec_slider3 = pygame.image.load(
+        "course_spec_slider3.png")
+
+    course_spec_slider3 = pygame.transform.smoothscale(course_spec_slider3, (384, 47))
+
+    course_tree_type_slider1 = pygame.image.load(
+        "pre_post_req_slider1.png")
+    course_tree_type_slider1 = pygame.transform.smoothscale(course_tree_type_slider1, (330, 47))
+
+    course_tree_type_slider2 = pygame.image.load(
+        "pre_post_req_slider2.png")
+    course_tree_type_slider2 = pygame.transform.smoothscale(course_tree_type_slider2, (330, 47))
+
+    course_tree_type_slider_image = [course_tree_type_slider1,course_tree_type_slider2]
+
+    selection_check_mark = pygame.image.load(
+        "check_mark.png")
+    selection_check_mark = pygame.transform.smoothscale(selection_check_mark, (41, 33))
 
     tree_camera = TreeCamera(info_box)
-    course_tree = None
+    app_state = AppState()
+
 
     programs = ["Computer Science", "Mathematics"]
     loader = PrerequisiteTreeLoader()
@@ -635,7 +698,7 @@ if __name__ == '__main__':
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_RETURN:
                         course_code = visualizer_search_field.input_text
-                        course_tree = loader.get_prerequisite_tree(course_code)
+                        app_state.current_course_tree = loader.get_prerequisite_tree(course_code)
                         tree_camera.reset_camera()
         if screen_mode == "start_screen":
             screen.blit(start_page, (0, 0))
@@ -663,20 +726,20 @@ if __name__ == '__main__':
                     y = 409 + (i - 19) * 18
 
                 screen.blit(text, (x, y))
-
-
-
-
         elif screen_mode == "main":
-
-
             screen.fill((255, 255, 255))
-            if course_tree is not None:
-                draw_tree_visualization(course_tree, tree_camera.x_pos_tree,
+            if app_state.current_course_tree is not None:
+                draw_tree_visualization(app_state.current_course_tree, tree_camera.x_pos_tree,
                                         tree_camera.y_pos_tree, 300, tree_camera.zoom_factor,
                                         tree_camera.node_course_code_map)
             screen.blit(tree_visualizer_page, (0, 0))
-            screen.blit(text, (100, 100))
+            if app_state.current_tree_type == "prerequisite":
+                screen.blit(course_tree_type_slider_image[0],(74,181))
+            else:
+                screen.blit(course_tree_type_slider_image[1], (74, 181))
+
+            if app_state.is_current_tree_simplified:
+                screen.blit(selection_check_mark, (288,230))
 
 
             main_screen_ui.update_visually(screen)
