@@ -399,23 +399,6 @@ def _compute_summer_offerings(historical_offerings: list[list[str | int]]) -> di
     return result
 
 
-# this is just for fun
-def longest_name(filename) -> str:
-    """Returns the prof with the longest full name formatted: 'last, first' """
-    with open(filename, "r") as read_file:
-        course_data = json.load(read_file)
-
-    longest_so_far = ""
-
-    for course in course_data:
-        for row in course_data[course]:
-            full_name = f"{row["prof_last_name"]}, {row["prof_first_name"]}"
-            if len(longest_so_far) < len(full_name):
-                longest_so_far = full_name
-
-    return longest_so_far
-
-
 if __name__ == "__main__":
     group_by_course_code([
         "computer_science.csv",
@@ -430,9 +413,3 @@ if __name__ == "__main__":
     #     "demo.csv"
     # ], "course_data.json")
     # compute("course_data.json", "course_data_computed.json")
-
-    # print(longest_name("course_data.json"))
-    #
-    # print(len("AbdELRazek Mansour AbdELKader, Mohamed"))
-    # print(len("Brando Albino Galvao de Sousa, Bernardo"))
-
