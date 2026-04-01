@@ -121,7 +121,7 @@ class Slider(UIManager):
 
         for option_id in range(self.num_options):
             option_img = pygame.image.load(option_filepaths[option_id])
-            option_surface = pygame.transform.smoothscale(option_img, size)
+            option_surface = pygame.transform.smoothscale(option_img, slider_size)
             self.option_surfaces.append(option_surface)
 
             button_coords = self.option_coords[option_id]
@@ -155,10 +155,9 @@ class Slider(UIManager):
         update visually
         """
 
-        selected_button = self.option_buttons[self.curr_selection]
-        print(self.curr_selection)
-        print(selected_button)
-        selected_button.update_visually(ui_screen)
+        selected_option_surface = self.option_surfaces[self.curr_selection]
+        coords = self.option_coords[0]
+        ui_screen.blit(selected_option_surface, coords)
 
     def show_outline_for_debugging(self, ui_screen) -> None:
         # show outline of options
