@@ -213,6 +213,19 @@ class CourseTree:
                 self._remove_empty_subtrees()
                 return self
 
+    def is_prerequisite(self, course: str) -> bool:  #TODO:
+        """Return whether the provided course is a direct prerequisite for the course at this tree's root
+        """
+        for subtree in self._subtrees:
+            if subtree.get_root() in {"CHOOSE", "ALL"}:
+                if subtree.is_prerequisite(course):
+                    return True
+            else:
+                if course == subtree.get_root():
+                    return True
+
+        return False
+
     def copy(self) -> CourseTree:
         """Return a copy of this course tree
         """

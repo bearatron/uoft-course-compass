@@ -572,19 +572,28 @@ def set_simplified_tree():
     else:
         app_state.is_current_tree_simplified = True
 
-#def generate_tree():
+def generate_tree(loader: PrerequisiteTreeLoader):
+    print('h')
+    current_course = visualizer_search_field.input_text
     # CASE 1: Postrequisite
-    # if app_state.current_tree_type.lower() == 'postrequisite':  # TODO:
-    #     postreq_loader = PostrequisiteTreeLoader
-    #     app_state.current_course_tree =
+    if app_state.current_tree_type.lower() == 'postrequisite':  # TODO:
+        app_state.current_course_tree = loader.get_postrequisite_tree(current_course)
     # Case 2: prereq unsimplified
+    elif app_state.current_tree_type.lower() == 'prerequisite' and not app_state.is_current_tree_simplified:  # TODO:
+        app_state.current_course_tree = loader.get_prerequisite_tree(current_course)
     # Case 3: prereq simplified
-    # course_code = visualizer_search_field.input_text
-    # app_state.current_course_tree = loader.get_prerequisite_tree(course_code)
-    # tree_camera.reset_camera()
+    else:
+        courses_taken = course_manager.get_dict()
+        app_state.current_course_tree = loader.get_prerequisite_tree(current_course).simplify_tree(courses_taken)
+
+    tree_camera.reset_camera()
 
 
 if __name__ == '__main__':
+
+    # JACOB SECTION
+    loader = PrerequisiteTreeLoader()
+    loader.load_from_file("prerequisite_tree_save_data.json")
 
     # ---------------------------------------------------------------------
     # LOAD CANVAS
@@ -603,7 +612,7 @@ if __name__ == '__main__':
     # ---------------------------------------------------------------------
     # Variables
     # ---------------------------------------------------------------------
-    DEV_MODE = True
+    DEV_MODE = False
     CURSOR_SIZE = 2  # tiny square
     CURSOR_COLOR = (255, 0, 0)  # white
 
@@ -643,7 +652,11 @@ if __name__ == '__main__':
     )
     simplify_tree_button = Button((285,237),(308,259), set_simplified_tree)
 
-    #generate_tree_button = Button((164,276),(314,294), generate_tree)
+    generate_tree_button = Button(
+        (164,276),
+        (314,294),
+        lambda: generate_tree(loader)
+    )
 
     main_screen_text_displayer = TextDisplayer("", 100, 500)
     main_screen_ui.add(visualizer_search_field)
@@ -653,7 +666,7 @@ if __name__ == '__main__':
     main_screen_ui.add(post_req_button)
     main_screen_ui.add(pre_req_button)
     main_screen_ui.add(simplify_tree_button)
-    #main_screen_ui.add(generate_tree_button)
+    main_screen_ui.add(generate_tree_button)
 
     course_spec_slider1 = pygame.image.load(
         "course_spec_slider1.png")
@@ -713,11 +726,14 @@ if __name__ == '__main__':
                 start_screen_ui.handle_event(event)
             elif screen_mode == "course_selection":
                 course_selection_ui.handle_event(event)
+                if event.type == pygame.KEYDOWN and event.key == pygame.K_BACKSPACE:
+                    screen_mode = "main"
             elif screen_mode == "main":
                 tree_camera.handle_interaction(event)
                 main_screen_ui.handle_event(event)
                 # TEMPORARLY uses enter key to take input from search bar, eventually this will be a button
                 # TODO: error check input
+
         if screen_mode == "start_screen":
             screen.blit(start_page, (0, 0))
         elif screen_mode == "course_selection":
