@@ -9,6 +9,8 @@ import webbrowser
 import link_of_course
 import json
 from pygame.examples.scroll import zoom_factor
+
+from optimal_path_to_course import optimal_path_to_course
 from post_req_tree import PostrequisiteTreeLoader
 
 from academic_calendar_reader import PrerequisiteTreeLoader, CourseNotFoundError
@@ -86,6 +88,8 @@ class MainScreenUI(UIManager):
     error_displayer: TextDisplayer
     text_displayer: TextDisplayer
 
+    course_spectrum_button: Button
+
     # Private instance attributes:
     #   - _tree_ui_element: a Tree UI element storing the tree to be displayed
     #   - _background_surface: a pygame Surface object for the main screen background
@@ -112,11 +116,15 @@ class MainScreenUI(UIManager):
         bg_image = pygame.image.load(MainScreenUI.BG_PATH)
         self._background_surface = pygame.transform.smoothscale(bg_image, (1440, 780))
 
-
         # create info box and add it to ui elements
         self.info_box = VisualizerInfoBox(5, 25)
         self.ui_components.append(self.info_box)
-        self.visualizer_search_field = TextField("Search Course", 30, (98, 29), (418, 73))
+        self.visualizer_search_field = TextField(
+            "Search Course",
+            30,
+            (98, 29),
+            (418, 73)
+        )
         # append to ui_components list for handle_event to work properly
         # TODO: remove once handle_event is implemented based on panel_output mode
         self.ui_components.append(self.visualizer_search_field)
@@ -139,6 +147,18 @@ class MainScreenUI(UIManager):
         # TODO: remove once handle_event is implemented based on panel_output mode
         self.ui_components.append(self._tree_ui_element)
 
+        # course spectrum "Generate" button
+        self.course_spectrum_button = Button(
+            (165, 495),
+            (315, 515),
+            lambda: generate_course_spectrum_tree(self.visualizer_search_field.input_text)
+        )
+
+        # append to ui_components list for handle_event to work properly
+        # TODO: remove once handle_event is implemented based on panel_output mode
+        self.ui_components.append(self.course_spectrum_button)
+
+
     def handle_event(self, ui_event):
         """Handles a UI event"""
         # the default implementation is to call handle_interaction on all elements in the ui_components list
@@ -150,17 +170,17 @@ class MainScreenUI(UIManager):
 
         # update UI elements that depend on panel output mode
 
-        if self.panel_output_mode == MainScreenUI.TEXT_OUTPUT:
+        if self.panel_output_mode == MainScreenUI.TREE_OUTPUT:
+            self._tree_ui_element.update_visually(ui_screen) #TODO; second bug fix
+            self.info_box.update_visually(ui_screen) #TODO: THIRD BUG FIX
+        elif self.panel_output_mode == MainScreenUI.TEXT_OUTPUT:
             self.text_displayer.update_visually(ui_screen)
         elif self.panel_output_mode == MainScreenUI.ERROR_OUTPUT:
             self.error_displayer.update_visually(ui_screen)
         else:
             print("!!! No valid screen panel output mode was set !!!")
 
-        ui_screen.blit(self._background_surface, (0,0))
-        if self.panel_output_mode == MainScreenUI.TREE_OUTPUT:
-            self._tree_ui_element.update_visually(ui_screen) #TODO; second bug fix
-            self.info_box.update_visually(ui_screen) #TODO: THIRD BUG FIX
+        ui_screen.blit(self._background_surface, (0, 0))
         self.visualizer_search_field.update_visually(ui_screen)
 
 class CourseManager:
@@ -506,6 +526,43 @@ def show_summer_offerings(course: str) -> None:
         # display on main screen
         main_screen_ui.text_displayer.display_text = summer_info_text
         main_screen_ui.panel_output_mode = MainScreenUI.TEXT_OUTPUT
+
+
+def generate_course_spectrum_tree(course: str):
+    """
+    Display a course spectrum tree based on the given course code
+    """
+    try:
+        prereq_tree = loader.get_prerequisite_tree(course)
+    except CourseNotFoundError:
+        # handle errors by setting the error display text
+        if course == "":
+            main_screen_ui.error_displayer.display_text = "Please enter a non-empty course code"
+        else:
+            main_screen_ui.error_displayer.display_text = \
+                f"The course '{course}' is invalid or doesn't exist"
+
+        # change panel output mode to error output
+        main_screen_ui.panel_output_mode = MainScreenUI.ERROR_OUTPUT
+    else:
+        courses_taken_tuple = course_manager.get_courses()
+        courses_taken = {}
+
+        for key_val_pair in courses_taken_tuple:
+            key, val = key_val_pair
+            courses_taken[key] = val
+
+        optimal_tree = optimal_path_to_course(
+            loader,
+            course,
+            courses_taken,
+            "workload",
+            False
+        )
+
+        main_screen_ui.course_tree = optimal_tree
+        main_screen_ui.tree_camera.reset_camera()
+        main_screen_ui.panel_output_mode = MainScreenUI.TREE_OUTPUT
 
 def ui_dev_mode(ui_screen, ui_event):
     # TODO:delete this before final submission
@@ -976,6 +1033,7 @@ if __name__ == '__main__':
 
             main_screen_ui.visualizer_search_field.show_outline_for_debugging(screen)
             main_screen_ui.summer_offering_button.show_outline_for_debugging(screen)
+            main_screen_ui.course_spectrum_button.show_outline_for_debugging(screen)
 
             # if app_state.current_course_tree is not None:
             #     draw_tree_visualization(app_state.current_course_tree, (tree_camera.x_pos_tree,
