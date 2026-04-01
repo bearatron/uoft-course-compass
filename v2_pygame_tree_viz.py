@@ -59,7 +59,7 @@ class UIManager:
     Instance Attributes:
         - ui_components: a list of UIElement objects managed by this UIManager
     """
-    ui_components: list[UIElement]
+    ui_components: list[UIElement | UIManager]
     def __init__(self):
         """Initialize a new UI Manager object"""
         self.ui_components = []
@@ -163,15 +163,18 @@ class Slider(UIManager):
         """
         Changes the slider selection to id
         """
+        print(f"switched from {self.curr_selection} to {to_id}")
         self.curr_selection = to_id
 
     def handle_interaction(self, ui_event: pygame.event.Event) -> None:
         """
         handle interaction
         """
-        print(f"curr selection: {self.curr_selection}")
-        print(f"{self.option_buttons}")
-
+        if ui_event.type == pygame.MOUSEBUTTONDOWN:
+            print(f"curr selection: {self.curr_selection}")
+            # print(f"{self.option_buttons}")
+            print("button coords:")
+            print([(b.top_left_cord, b.bottom_right_cord) for b in self.option_buttons])
         for button in self.option_buttons:
             button.handle_interaction(ui_event)
 
@@ -325,7 +328,7 @@ class MainScreenUI(UIManager):
             (384, 47)
         )
 
-        self.ui_components.extend(self.course_spectrum_slider.option_buttons)
+        self.ui_components.append(self.course_spectrum_slider)
 
     def handle_event(self, ui_event):
         """Handles a UI event"""
@@ -756,7 +759,7 @@ def ui_dev_mode(ui_screen, ui_event):
     pygame.draw.rect(screen, (255, 0, 0), (x, y, cursor_size, cursor_size))
 
     if ui_event.type == pygame.MOUSEBUTTONDOWN:
-        print(x, y)
+        print(f"coords clicked: {x}, {y}")
 
 #TODO: handle jacobs version april 1
 # def set_prereq_tree():
