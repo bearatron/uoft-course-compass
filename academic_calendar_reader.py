@@ -514,7 +514,7 @@ class PrerequisiteTreeLoader:
         # Load prerequisite trees from all prerequisite strings
         self._prerequisite_trees.update(convert_to_tree(self._prerequisite_strings))
 
-        # Loop through every course and recursively add on prerequisites of prerequisites, etc.
+        # Loop through every course and add on prerequisites of prerequisites, etc.
         for course_code in self._prerequisite_trees:
             course_tree = self._prerequisite_trees[course_code]
             leaves = course_tree.get_course_leaves()

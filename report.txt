@@ -25,7 +25,7 @@ When reading this, a student must first understand what the slashes, commas, and
 
 
 \section{Datasets:}
-Our project uses two primary datasets: data scrapped from the University of Toronto's Academic Calendar and course evaluation data from UofT's course evaluations portal.  \\
+Our project uses two primary datasets: data scraped from the University of Toronto's Academic Calendar and course evaluation data from U of T's course evaluations portal.  \\
 
 \textbf{Dataset 1: Academic Calendar}: \\
 The academic calendar dataset was collected by scaping the UofT Arts and Science Academic Calendar website (https://artsci.calendar.utoronto.ca) using requests library and BeautifulSoup. For each course, we extracted the course code, full course name, description, and prerequisite string. We did not extract data for all the courses, only those from the Mathematics, Computer Science, Physics, Economics, and Statistical Sciences departments.\\
@@ -53,24 +53,24 @@ Each record in the resulting CSV contains the following fields: Division, Depart
 
 \section{Computational Overview:}
 \subsection{Use of Trees to Model Data:}
-Our project uses two kinds of data to represent the UofT course domain: academic calendar data and course evaluation data. The academic calendar data is loaded using \verb|load_course_information()| in \verb|academic_calendar_reader.py|, which returns a dictionary mapping each course code (a string) to its prerequisite string. The course evaluation data is stored in \verb|.csv| files such as \verb|mathematics.csv| and \verb|demo.csv|, scraped using the \verb|CourseEvalsParser| class in \verb|course_evals_parser.py|.
+Our project uses two kinds of data to represent the UofT course domain: academic calendar data and course evaluation data. The academic calendar data is loaded using \verb|load_course_information()| in \verb|academic_calendar_reader.py|, which returns a dictionary mapping each course code (a string) to its prerequisite string, and another dictionary that maps each course code to its full name and description. The course evaluation data is stored in \verb|.csv| files such as \verb|mathematics.csv| and \verb|demo.csv|, scraped using the \verb|CourseEvalsParser| class in \verb|course_evals_parser.py|.
 
-Trees play the central role in our data representation. The \verb|CourseTree| class defined in \verb|course_tree.py| is the core data structure of the entire project. Each \verb|CourseTree| node has three attributes: \verb|_root|, which stores either a course code, \verb|'ALL'|, or \verb|'CHOOSE'|; \verb|_required_grade|, an integer storing the minimum grade requirement for that course (-1 if none); and \verb|_subtrees|, a list of child \verb|CourseTree| nodes. Leaf nodes always represent individual course codes, while internal nodes represent logical relationships — \verb|ALL| meaning every child course is required, and \verb|CHOOSE| meaning at least one child is required. This maps directly onto the academic calendar's notation where commas indicate cumulative requirements and slashes indicate alternatives. The tree is hierarchical by design, allowing the user to trace a clear path of all courses needed to reach a target course, at any level of depth.
+Trees play the central role in our data representation. The \verb|CourseTree| class defined in \verb|course_tree.py| is the core data structure of the entire project. Each \verb|CourseTree| node has three attributes: \verb|_root|, which stores either a course code, \verb|'ALL'|, or \verb|'CHOOSE'|; \verb|_required_grade|, an integer storing the minimum grade requirement for that course (-1 if none); and \verb|_subtrees|, a list of child \verb|CourseTree| nodes. Leaf nodes always represent individual course codes, while internal nodes represent either logical relationships (\verb|ALL| meaning every child course is required, and \verb|CHOOSE| meaning at least one child is required) or more course codes. This maps directly onto the academic calendar's notation where commas indicate cumulative requirements and slashes indicate alternatives. The tree is hierarchical by design, allowing the user to trace a clear path of all courses needed to reach a target course, at any level of depth.
 
 
 \textbf{Major Computations}
 
 \textbf{Building the Prerequisite Tree}
 
-The prerequisite tree is built using the static method \verb|CourseTree.generate_course_tree()| in \verb|course_tree.py|. This method works recursively by examining the outermost logical structure of a prerequisite string. It uses two helper functions from \verb|string_methods.py|: \verb|has_unnested()|, which checks whether a given character appears outside of any parentheses, and \verb|unnested_split()|, which splits the string at all unnested instances of a given character. If the string contains unnested commas, an \verb|ALL| node is created with each comma-separated component as a subtree. If it contains unnested slashes, a \verb|CHOOSE| node is created instead. If the string is a single graded course code (validated by \verb|is_graded_course_code()| in \verb|string_methods.py|), a leaf node is created with the course code and grade requirement stored directly on the node. If the string is wrapped in redundant parentheses, the outer layer is stripped and the function recurses on the inner content. This continues until all components have been reduced to leaf nodes.
+The prerequisite tree is built using the static method \verb|CourseTree.generate_course_tree()| in \verb|course_tree.py|. This method works recursively by examining the outermost logical structure of a prerequisite string. It uses two helper functions from \verb|string_methods.py|: \verb|has_unnested()|, which checks whether a given character appears outside of any parentheses, and \verb|unnested_split()|, which splits the string at all unnested instances of a given character. If the string contains unnested commas, an \verb|ALL| node is created with each comma-separated component as a subtree. If it contains unnested slashes, a \verb|CHOOSE| node is created instead. If the string is a single graded course code (validated by \verb|is_graded_course_code()| in \verb|string_methods.py|), a leaf node is created with the course code and grade requirement stored directly on the node. If the string is wrapped in redundant parentheses, the outer layer is stripped and the function recurses on the inner content. This continues until all components have been reduced to leaf nodes. However, this will only show direct prerequisites to a given course. When the \verb|AcademicCalendarReader| is being generated in the \verb|load_from_file| method, the program loops through every course tree and replaces the leaf nodes with references to the courses they correspond to. This makes all of the course trees interconnected in memory so that each course then shows the full list of prerequisites, rather than just the first layer.
 
 \textbf{Building the Post-requisite Tree}
 
-The post-requisite tree is built in \verb|post_req_tree.py|. The function \verb|load_course_postrequisites()| first calls \verb|load_course_information()| from \verb|academic_calendar_reader.py| to obtain the prerequisite dictionary, then inverts it — iterating through each course's prerequisite string using \verb|fix_given_courses()| to extract all valid course codes, and building a new dictionary that maps each course to the list of courses that require it. The \verb|PostrequisiteTreeLoader| class then uses this inverted dictionary to build a post-requisite tree via the recursive helper \verb|_build_tree()|, which expands outward from the selected course up to a user-specified depth.
+The post-requisite tree is generated in \verb|academic_calendar_reader.py|. The method \verb|get_postrequisite_tree| of \verb|PrerequisiteTreeLoader| loops through every course that has a corresponding prerequisite tree, and checks whether the provided course is a direct prerequisite to any of the courses being looped through. If so, then that course is added as a subtree to the \verb|postrequisite_tree| which is finally returned.
 
 \textbf{Simplifying the Tree Based on Taken Courses}
 
-Tree simplification is handled by the \verb|simplify_tree()| method in \verb|CourseTree|. It takes a dictionary mapping course codes to the grades the user achieved, and recursively traverses the tree. For leaf nodes representing individual courses, it checks whether the course appears in the dictionary with a sufficiently high grade using \verb|_course_completed()|. If so, the node is replaced with an empty tree. For \verb|ALL| nodes, if all subtrees become empty the node collapses entirely; otherwise empty subtrees are pruned using \verb|_remove_empty_subtrees()|. For \verb|CHOOSE| nodes, if any one subtree becomes empty the entire node collapses, since one of the alternatives has been satisfied. If a node ends up with only one subtree after pruning, that extra layer is removed to keep the tree clean.
+Tree simplification is handled by the \verb|simplify_tree()| method in \verb|CourseTree|. It takes a dictionary mapping course codes to the grades the user achieved, and recursively traverses the tree. For nodes representing individual courses, it checks whether the course appears in the dictionary with a sufficiently high grade using \verb|_course_completed()|. If so, the node is replaced with an empty tree. For \verb|ALL| nodes, if all subtrees become empty the node collapses entirely; otherwise empty subtrees are pruned using \verb|_remove_empty_subtrees()|. For \verb|CHOOSE| nodes, if any one subtree becomes empty the entire node collapses, since one of the alternatives has been satisfied. If a node ends up with only one subtree after pruning, that extra layer is removed to keep the tree clean.
 
 \textbf{Consolidate Rating:}
 Within \verb|consolidate_rating.py|, the \verb|group_by_course_code| function takes in the CSV, groups the course evaluation data by course code, and outputs it to a JSON file. Then, the \verb|compute| function takes in the raw JSON file and performs the following computations:
@@ -102,39 +102,38 @@ Our project makes use of three new Python libraries: \verb|BeautifulSoup|, \verb
 
 \verb|Selenium| was used in \verb|course_evals_parser.py| to scrape the UofT course evaluations portal. A \verb|webdriver.Chrome()|  was used to create a Chrome browser and open it, and \verb|WebDriverWait| was used to later close the Chrome. WebElementHelper was used to check whether the website showed any signals to indicate whatever steps should be implemented (for example: checks input text field is in view)
 #TODO ETHAN "By library-what does it do exactly?"
-By using these libraries, we were able to parse through the course website and get the necessary data. After computing and cleaning the data, we got informations that are later showed to the user. For example: course rating, profs_by_rating, and historical_offerings...
+By using these libraries, we were able to parse through the course website and get the necessary data. After computing and cleaning the data, we got informations that are later showed to the user. For example: course rating, profs\_by\_rating, and historical\_offerings...
 
 
 \verb|pygame| was used to build the entire interactive visualization. Specifically, \verb|pygame.display.set_mode()| was used to initialize the application window, \verb|pygame.draw.rect()| and \verb|pygame.draw.line()| were used to render course nodes and the edges connecting them, and \verb|pygame.font.Font().render()| was used to draw course code labels onto each node. User input was handled through pygame's event system, detecting keyboard events for WASD navigation and mouse click events for selecting individual course nodes to view additional information.
 
 \textbf{Libraries used:}
-BeautifulSoup
-requests
-json
-webbrowser
+BeautifulSoup,
+requests,
+json,
+webbrowser,
 textwrap
 
 
 
 \section{Changes to Our Project Plan:}
-After much discussion amoungst ourselves, we planned to remove the "Unintended minor" mentioned in the proposal. We feel that this feature isn't too helpful realistically speaking; user could always notice any potential minor they could pursue from the program requirements. It also requires us to utilize the data on all the programs (including outside Art & Science). Hence, that plan was removed.
+After much discussion amongst ourselves, we planned to remove the "Unintended minor" mentioned in the proposal. We feel that this feature isn't too helpful realistically speaking; the user could always notice any potential minor they could pursue from the program requirements. Program requirements are also significantly less straightforward than course prerequisites, so each program would have to be handled separately that was infeasible given the scope of the project. Hence, that plan was removed.
 
-Additionally, we also mutated the feature "Bottleneck Courses" mentioned in the proposal to another feature called the "course post-requisite difference". Essentially, it shows feature all the additional courses one could take if one takes a course A as opposed to course B to a certain depth (Note: the depth is the same as postrequisite tree's depth). Vice Versa, if course B was taken instead of course A.
-For Example : MAT137Y1 and MAT157Y1 with a depth of 1 (direct postrequisite), this feature would show MAT257 is available that is exclusive to MAT157Y1 students and not MAT137Y1.
+Additionally, we also mutated the feature "Bottleneck Courses" mentioned in the proposal to another feature called the "course post-requisite difference". Essentially, it shows all the additional courses one could take if one takes a course A as opposed to course B. Vice Versa, if course B was taken instead of course A.
+For example, Consider the direct postrequisites of  MAT137Y1 and MAT157Y1: this feature would show many courses that are exclusive to MAT157Y1 (like MAT257Y1, MAT267H1, MAT327H1) that taking only MAT137Y1 is not adequate preparation for.
 The purpose of the feature is to allow students to make more informed decision, in this case, whether to take MAT137/157 after knowing which courses each option would provide.
 
-Another feature we removed is the "Course heat map" mentioned in the proposal. We found it redundant because the user could find the individual course difficulty. Therefore, we didn't think it would make that much of impact.
+Another feature we removed is the "Course heat map" mentioned in the proposal. We found it redundant because it did not provide the user with enough useful information, and they could always find the course difficulty in the pop up menu. Therefore, we didn't think it would make that much of impact.
 
 Another feature we added it called "Summer Course Offerings". This feature would provide the user the amount of times the course is offered in summer from the information given in the Course Evaluations. This feature is implemented to help the students have a informed guess whether the course would be offered for the coming summer semester.
 
 
 
 \section{Discussion section:}
-Our program successfully fulfills the goal of making the course selection process more accessible and understandable for UofT students. By automatically generating prerequisite and post-requisite trees from the academic calendar and displaying them interactively through pygame, students are able to visualize complex multi-level course relationships that would otherwise require extensive manual navigation of the calendar's text-based notation. The tree simplification feature further personalizes this by allowing students to input their completed courses and instantly see only what remains, and the course heat map provides an additional layer of information about workload and satisfaction that the academic calendar does not offer at all.
+Our program successfully fulfills the goal of making the course selection process more accessible and understandable for UofT students. By automatically generating prerequisite and post-requisite trees from the academic calendar and displaying them interactively through pygame, students are able to visualize complex multi-level course relationships that would otherwise require extensive manual navigation of the calendar's text-based notation. The tree simplification feature further personalizes this by allowing students to input their completed courses and instantly see only what remains, and the course evaluation information provides an additional layer of information about workload and satisfaction that the academic calendar does not offer at all.
 
 One obstacle we encountered was the unorganized text found in the Academic calendar. It was difficult to parse through the string of text, and find the necessary course with inconsistent text patterns.
-For example :CSC110Y1(70\% or higher)",  "60\% or higher in CSC148H1",  or "75\% or greater in CSC338H5" . We found it hard to parse through these different string, and save the valid course code, and the mark required for that course.  \\
-#Jacob might want to elaborate on why it is difficult#\\
+For example, finding the correct grade prerequisite was difficult because of the lack of standardization across course prerequisites. Some examples of how this is presented are: CSC110Y1(70\% or higher)",  "60\% or higher in CSC148H1",  or "75\% or greater in CSC338H5". We found it hard to parse through these different string, and save the valid course code, and the mark required for that course. Also, since our application is intended for students at the St. George campus, we had to eliminate courses from other campuses while preserving the logical structure of the prerequisites. This required nontrivial parsing of the prerequisite string and careful consideration of the way courses could be combined with each other. \\
 
 \textbf{SHAYAN WANTS ME TO MAKE IT OBVIOUS FOR HIM TO SHOW HIS UI LIMITATION}
 
