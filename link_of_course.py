@@ -30,3 +30,16 @@ def program_link_generate(program_name: str) -> str:
     edited_program_name = edited_program_name.replace(" ", "-")
 
     return f"https://artsci.calendar.utoronto.ca/section/{edited_program_name.lower()}"
+
+if __name__ == '__main__':
+    # pass
+    import doctest
+    import python_ta
+
+    doctest.testmod()
+
+    python_ta.check_all(config={
+        'max-line-length': 120,
+        'extra-imports': [],
+        'disable': ['static_type_checker'],
+    })

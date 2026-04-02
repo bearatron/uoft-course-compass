@@ -273,3 +273,17 @@ class CourseRatingsTree(CourseTree):
 
             optimal_tree = CourseTree(self._root, self._required_grade, optimal_subtrees)
             return optimal_tree
+
+
+if __name__ == '__main__':
+    # pass
+    import doctest
+    import python_ta
+
+    doctest.testmod()
+
+    python_ta.check_all(config={
+        'max-line-length': 120,
+        'extra-imports': [],
+        'disable': ['static_type_checker'],
+    })

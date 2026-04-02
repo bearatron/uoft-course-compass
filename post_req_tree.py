@@ -30,7 +30,15 @@ def course_difference_tree(tree1: CourseTree, tree2: CourseTree):
             f"course exclusive for {tree2.get_root()}": courses_exclusive_tree2}
 
 
-# def get_direct_postrequisites(course_code: str, save_file: str) -> CourseTree:
-#     loader = PrerequisiteTreeLoader()
-#     loader.load_from_file(save_file)
-#     course_tree = loader.get_prerequisite_tree
+if __name__ == '__main__':
+    # pass
+    import doctest
+    import python_ta
+
+    doctest.testmod()
+
+    python_ta.check_all(config={
+        'max-line-length': 120,
+        'extra-imports': [],
+        'disable': ['static_type_checker'],
+    })

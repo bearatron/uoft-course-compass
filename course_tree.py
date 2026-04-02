@@ -239,10 +239,14 @@ class CourseTree:
 
 
 if __name__ == '__main__':
-    pass
-    # import python_ta
-    # python_ta.check_all(config={
-    #     'max-line-length': 120,
-    #     'extra-imports': ['string_methods'],
-    #     'disable': ['static_type_checker'],
-    # })
+    # pass
+    import doctest
+    import python_ta
+
+    doctest.testmod()
+
+    python_ta.check_all(config={
+        'max-line-length': 120,
+        'extra-imports': [],
+        'disable': ['static_type_checker'],
+    })
