@@ -1,9 +1,14 @@
-"""Docstring  # TODO: insert docstring
+"""
+Text manipulation and rendering utilities.
+
+This module provides helper functions to format, wrap, and display text
+within the Pygame UI. It abstracts complex layout tasks such as multiline
+text wrapping with automatic truncation for headings and body paragraphs,
+as well as string trimming to ensure names and long strings fit cleanly
+inside predefined visual boundaries.
 
 This file is Copyright (c) 2026 Shayan Bhatti, Jacob Chislett, Ethan Diep, Shuhan Yuan
 """
-
-
 import pygame
 from typing import Optional
 import textwrap
@@ -57,9 +62,7 @@ def display_multiline_text(
 
 
 def trim_name(name: str, max_length: int) -> str:
-    """
-    Return a professor's full name trimmed to be at most max_length characters
-    """
+    name = name.split(",")[0]  #takes last name only
     if len(name) > max_length:
         return name[:max_length - 3] + "..."
     return name
