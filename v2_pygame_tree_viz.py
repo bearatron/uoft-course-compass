@@ -1021,7 +1021,7 @@ def generate_course_difference_tree(original_course: str, course_to_compare: str
         main_screen_ui.panel_output_mode = MainScreenUI.ERROR_OUTPUT
         return
 
-    resulting_dict = course_difference_tree(tree1, tree2)
+    similar_courses, tree1_exclusive, tree2_exclusive = course_difference_tree(tree1, tree2).values()
 
     # set panel output mode to tree output
     main_screen_ui.tree_camera.reset_camera()
@@ -1086,6 +1086,9 @@ class Tree(UIElement):
     LINE_THICKNESS = 4
     LINE_COLOR = (0, 0, 0)
 
+    # Instance attributes:
+    #   - tree_camera: a TreeCamera to be used to control the tree
+    #   - course_tree: a CourseTree to be displayed
     tree_camera: TreeCamera
     course_tree: CourseTree
 
@@ -1147,7 +1150,8 @@ class Tree(UIElement):
                     max(1, int(Tree.LINE_THICKNESS * tree_zoom_factor))
                 )
 
-                self.draw_tree_visualization(subtree, (child_x, y_pos + int(VERTICAL_SPACING * tree_zoom_factor)),
+                self.draw_tree_visualization(subtree,
+                                             (child_x, y_pos + int(Tree.VERTICAL_SPACING * tree_zoom_factor)),
                                              spacing_factor, tree_zoom_factor,
                                              node_course_code_map, target_screen)
 
