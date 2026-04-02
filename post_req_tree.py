@@ -32,3 +32,17 @@ def course_difference_tree(tree1: CourseTree, tree2: CourseTree):
     courses_exclusive_tree1, courses_exclusive_tree2 = courses1 - courses2, courses2 - courses1
     return {"course for both": courses1 | courses2, f"course exclusive for {tree1.get_root()}" : courses_exclusive_tree1,
             f"course exclusive for {tree2.get_root()}": courses_exclusive_tree2}
+
+
+if __name__ == '__main__':
+    # pass
+    import doctest
+    import python_ta
+
+    doctest.testmod()
+
+    python_ta.check_all(config={
+        'max-line-length': 120,
+        'extra-imports': [],
+        'disable': ['static_type_checker'],
+    })

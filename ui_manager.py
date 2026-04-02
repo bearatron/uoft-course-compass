@@ -711,3 +711,17 @@ def generate_course_difference_tree(original_course: str,
     # this signals that the main screen ui should display course differences
     main_screen_ui.course_difference_tree.reset_camera()
     main_screen_ui.panel_output_mode = MainScreenUI.COURSE_DIFFERENCE_OUTPUT
+
+
+if __name__ == '__main__':
+    # pass
+    import doctest
+    import python_ta
+
+    doctest.testmod()
+
+    python_ta.check_all(config={
+        'max-line-length': 120,
+        'extra-imports': [],
+        'disable': ['static_type_checker'],
+    })

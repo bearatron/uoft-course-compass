@@ -4,6 +4,8 @@ Pygame UI framework and interactive course visualization.
 This module provides standard UI components (`Button`, `TextField`, `VisualizerInfoBox`)
 to handle Pygame rendering and events. It also features `Tree` and `TreeController`
 classes for dynamically visualizing and navigating hierarchical academic course networks.
+
+This file is Copyright (c) 2026 Shayan Bhatti, Jacob Chislett, Ethan Diep, Shuhan Yuan
 """
 
 from __future__ import annotations
@@ -1093,3 +1095,17 @@ class Tree(UIElement):
 
     def show_outline_for_debugging(self, ui_screen: pygame.Surface) -> None:
         self.tree_camera.show_outline_for_debugging(ui_screen)
+
+
+if __name__ == '__main__':
+    # pass
+    import doctest
+    import python_ta
+
+    doctest.testmod()
+
+    python_ta.check_all(config={
+        'max-line-length': 120,
+        'extra-imports': [],
+        'disable': ['static_type_checker'],
+    })

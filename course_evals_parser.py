@@ -270,3 +270,14 @@ if __name__ == "__main__":
     # CourseEvalsParser.parse_department("Mathematics")
     # CourseEvalsParser.parse_department("Economics")
     # CourseEvalsParser.parse_department("Physics")
+
+    import doctest
+    import python_ta
+
+    doctest.testmod()
+
+    python_ta.check_all(config={
+        'max-line-length': 120,
+        'extra-imports': [],
+        'disable': ['static_type_checker'],
+    })

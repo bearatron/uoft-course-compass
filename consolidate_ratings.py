@@ -423,7 +423,13 @@ if __name__ == "__main__":
     ], "course_data.json")
     compute("course_data.json", "course_data_computed.json")
 
-    # group_by_course_code([
-    #     "demo.csv"
-    # ], "course_data.json")
-    # compute("course_data.json", "course_data_computed.json")
+    import doctest
+    import python_ta
+
+    doctest.testmod()
+
+    python_ta.check_all(config={
+        'max-line-length': 120,
+        'extra-imports': [],
+        'disable': ['static_type_checker'],
+    })

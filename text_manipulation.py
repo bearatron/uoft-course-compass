@@ -111,3 +111,17 @@ def trim_name(name: str, max_length: int) -> str:
     if len(name) > max_length:
         return name[:max_length - 3] + "..."
     return name
+
+
+if __name__ == '__main__':
+    # pass
+    import doctest
+    import python_ta
+
+    doctest.testmod()
+
+    python_ta.check_all(config={
+        'max-line-length': 120,
+        'extra-imports': [],
+        'disable': ['static_type_checker'],
+    })
