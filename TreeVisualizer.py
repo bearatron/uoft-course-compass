@@ -44,6 +44,7 @@ class _TreeVisualizerImages:
     course_tree_type_slider_image: list[pygame.Surface]
     selection_check_mark: pygame.Surface
 
+
 @dataclass
 class _UIManagers:
     """
@@ -58,6 +59,7 @@ class _UIManagers:
     course_selection_ui: UIManager
     main_screen_ui: MainScreenUI
 
+
 @dataclass
 class _UIElements:
     """
@@ -71,6 +73,7 @@ class _UIElements:
     taken_course_field: TextField
     grade_mark_field: TextField
     add_course_button: Button
+
 
 class TreeVisualizer:
     """
@@ -102,7 +105,7 @@ class TreeVisualizer:
         self._initialize_images()
         self._initialize_ui_components()
 
-    def _initialize_images(self) -> None:  # TODO: make sure to add return types on ALLLLL your methods and functions
+    def _initialize_images(self) -> None:
         """Private helper that loads and scales all image assets used by the application."""
 
         # Tuple represents size (Length x Width)
@@ -196,12 +199,12 @@ class TreeVisualizer:
             lambda: self._add_course_to_list()
         )
 
-        #Add ui elements to respective manager
+        # Add ui elements to respective manager
         course_selection_ui.add(taken_course_field)
         course_selection_ui.add(grade_mark_field)
         course_selection_ui.add(add_course_button)
 
-        #Store ui elements and manager to respective data classes
+        # Store ui elements and manager to respective data classes
         self.ui_elements = _UIElements(
             taken_course_field,
             grade_mark_field,
@@ -217,7 +220,7 @@ class TreeVisualizer:
     def _initialize_pygame(self) -> None:
         """ Private helper that initialize pygame and configures the main application window."""
         pygame.init()
-        #screen settings
+        # screen settings
         screen_width = 1440
         screen_height = 780
         size = (screen_width, screen_height)
@@ -245,7 +248,7 @@ class TreeVisualizer:
                 if event.type == pygame.QUIT:
                     done = True
                 if event.type == pygame.KEYDOWN:
-                    #Everytime user clicks enter, the screen mode is changed
+                    # Everytime user clicks enter, the screen mode is changed
                     # until app reaches main screen
                     if event.key == pygame.K_RETURN:
                         if self.screen_mode == "start_screen":
@@ -253,14 +256,14 @@ class TreeVisualizer:
                         else:
                             self.screen_mode = "main"
 
-                #Each ui manager for each respective screen handles pygame events
+                # Each ui manager for each respective screen handles pygame events
                 if self.screen_mode == "start_screen":
                     self.ui_managers.start_screen_ui.handle_event(event)
                 elif self.screen_mode == "course_selection":
                     self.ui_managers.course_selection_ui.handle_event(event)
                 elif self.screen_mode == "main":
                     self.ui_managers.main_screen_ui.handle_event(event)
-            #Visually update in appearance the current screen
+            # Visually update in appearance the current screen
             if self.screen_mode == "start_screen":
                 self.screen.blit(self.images.start_page, (0, 0))
 

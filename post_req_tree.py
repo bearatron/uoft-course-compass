@@ -1,4 +1,8 @@
-"""Docstring  # TODO: insert docstring
+"""
+Course tree computation methods
+
+This module provides two useful methods. One finds all items in a tree, and
+the other finds the similarities and differences between the two trees.
 
 This file is Copyright (c) 2026 Shayan Bhatti, Jacob Chislett, Ethan Diep, Shuhan Yuan
 """
@@ -28,9 +32,3 @@ def course_difference_tree(tree1: CourseTree, tree2: CourseTree):
     courses_exclusive_tree1, courses_exclusive_tree2 = courses1 - courses2, courses2 - courses1
     return {"course for both": courses1 | courses2, f"course exclusive for {tree1.get_root()}" : courses_exclusive_tree1,
             f"course exclusive for {tree2.get_root()}": courses_exclusive_tree2}
-
-
-# def get_direct_postrequisites(course_code: str, save_file: str) -> CourseTree:
-#     loader = PrerequisiteTreeLoader()
-#     loader.load_from_file(save_file)
-#     course_tree = loader.get_prerequisite_tree

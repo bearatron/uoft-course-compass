@@ -21,6 +21,7 @@ from academic_calendar_reader import PrerequisiteTreeLoader, CourseNotFoundError
 from optimal_path_to_course import optimal_path_to_course
 from post_req_tree import course_difference_tree
 
+
 class CourseManager:
     """
     A class responsible for storing courses the user has taken and the grades earned.
@@ -83,7 +84,7 @@ class UIManager:
     events and drawing updates to each component.
 
     Instance Attributes:
-        - ui_components: a list of UIElement objects managed by this UIManager
+        - ui_components: a list of UIElement or other UIManager objects managed by this UIManager
     """
     ui_components: list[UIElement | UIManager]
 
@@ -124,7 +125,7 @@ class Slider(UIManager):
     #   - option_surfaces: a list of pygame Surfaces representing the various options
     #   - option_buttons: a list of Buttons representing the slider options
     #   - option_coords: a list of coords representing the slider options
-    #   - slider_size: a tuple representing the width and height of each slider option
+    #   - slider_size: a tuple representing the width and height of the entire slider
     curr_selection: int
     num_options: int
     option_filepaths: list[str]
@@ -139,64 +140,75 @@ class Slider(UIManager):
                  slider_size: tuple[int, int]) -> None:
         """
         Initializes an instance of Slider
+        option_filepaths is a list of paths to the slider button images
         option_coords is a list of top left and bottom right coordinates of the slider option buttons
+        slider_size is the size of the entire slider image
+
+        The rest of the class's attributes are computed based on the above values
         """
         super().__init__()
         self.option_filepaths = option_filepaths
         self.option_coords = option_coords
-        self.num_options = len(self.option_filepaths)
 
+        # number of options should be the same as the number of option images that are stored
+        self.num_options = len(self.option_filepaths)
         self.slider_size = slider_size
+
+        # the first element is selected by default
         self.curr_selection = 0
 
-        # construct option surfaces from filepaths
-        self.option_surfaces = []
-        # construct option buttons from filepaths
-        self.option_buttons = []
+        # initialize accumulators
+        self.option_surfaces = []  # pygame Surface objects for the slider buttons, are drawn to the screen
+        self.option_buttons = []  # Button objects that correspond to the Surfaces that provide selection functionality
 
+        # construct option surfaces and buttons from filepaths
         for option_id in range(self.num_options):
+            # load image
             option_img = pygame.image.load(option_filepaths[option_id])
+
+            # convert to surface
             option_surface = pygame.transform.smoothscale(option_img, slider_size)
+
+            # accumulate
             self.option_surfaces.append(option_surface)
 
+            # construct Button UIElement based on coords provided
             button_coords = self.option_coords[option_id]
             top_left, bottom_right = button_coords
             option_button = Button(
                 top_left,
                 bottom_right,
+                # change selection to the corresponding option when button is clicked
                 lambda option_id=option_id: self.change_selection(option_id)
             )
 
+            # accumulate
             self.option_buttons.append(option_button)
 
     def change_selection(self, to_id: int) -> None:
         """
-        Changes the slider selection to id
+        Change the slider selection to id
         """
-        # print(f"switched from {self.curr_selection} to {to_id}")
         self.curr_selection = to_id
 
     def handle_interaction(self, ui_event: pygame.event.Event) -> None:
         """
-        handle interaction
+        Check if any slider buttons have been clicked
         """
-        if ui_event.type == pygame.MOUSEBUTTONDOWN:
-            # print(f"curr selection: {self.curr_selection}")
-            # print(f"{self.option_buttons}")
-            # print("button coords:")
-            # print([(b.top_left_cord, b.bottom_right_cord) for b in self.option_buttons])
-            ...
         for button in self.option_buttons:
             button.handle_interaction(ui_event)
 
     def update_visually(self, ui_screen: pygame.Surface) -> None:
         """
-        update visually
+        Draw the slider image corresponding to the option currently selected
         """
-
+        # get the pygame Surface of the currently selected slider option
         selected_option_surface = self.option_surfaces[self.curr_selection]
-        # always draw slider at same location b/c its the same image in a diffrent state
-        coords = self.option_coords[0]
+
+        # always draw slider option at same location because it's the same image, but in a different state
+        coords = self.option_coords[0]  # top left coordinate of the slider
+
+        # draw to screen
         ui_screen.blit(selected_option_surface, coords)
 
     def show_outline_for_debugging(self, ui_screen) -> None:
@@ -241,6 +253,8 @@ class MainScreenUI(UIManager):
     #   - course_tree_generate_button: a button that generates the course tree
     #   - course_tree_simplify_checkbox: a Checkbox that stores whether
     #       to simplify the tree if it's a prereq tree
+    #   - course_manager: a CourseManager that stores the courses taken, entered by the user
+    #   - loader: a PrerequisiteTreeLoader that can load prerequisite CourseTrees
 
     panel_output_mode: int
     tree_type: int
@@ -314,7 +328,9 @@ class MainScreenUI(UIManager):
         self.summer_offering_button = Button(
             (272, 575),
             (424, 600),
-            lambda main_screen_ui=self: show_summer_offerings(self.visualizer_search_field.get_input_text(), main_screen_ui),
+            # when clicked, display info about summer course offerings as text on the panel
+            lambda main_screen_ui=self:
+                show_summer_offerings(self.visualizer_search_field.get_input_text(), main_screen_ui),
         )
         # append to ui_components list for handle_event to work properly
         self.ui_components.append(self.summer_offering_button)
@@ -322,32 +338,39 @@ class MainScreenUI(UIManager):
         ###########################################
         # Course Difference Tree related elements #
         ###########################################
+        # create the field to enter the course the user can compare to
         self.course_difference_search_field = TextField(
             "Course to compare to",
             18,
             (260, 690),
             (430, 717)
         )
+        # append to ui_components list for handle_event to work properly
         self.ui_components.append(self.course_difference_search_field)
 
+        # create the button for showing similarities and differences between courses
         self.course_difference_generate_button = Button(
             (272, 725),
             (424, 747),
+            # display course similarities and differences to the panel
             lambda main_screen_ui=self: generate_course_difference_tree(
                 self.visualizer_search_field.get_input_text(),
                 self.course_difference_search_field.get_input_text(),
                 self.course_difference_tree, self.loader, main_screen_ui
             )
         )
+        # append to ui_components list for handle_event to work properly
         self.ui_components.append(self.course_difference_generate_button)
 
+        # create course difference tree object (will be displayed on the panel)
         self.course_difference_tree = CourseDifference(self.info_box, self.loader)
+        # append to ui_components list for handle_event to work properly
         self.ui_components.append(self.course_difference_tree)
-
 
         ################################
         # Course Tree related elements #
         ################################
+        # slider object for course tree
         self.course_tree_slider = Slider(
             ["pre_post_req_slider1.png", "pre_post_req_slider2.png"],
             [
@@ -356,20 +379,25 @@ class MainScreenUI(UIManager):
             ],
             (330, 47)
         )
+        # append to ui_components list for handle_event to work properly
         self.ui_components.append(self.course_tree_slider)
 
-        # construct the tree ui element from a TreeCamera and CourseTree
+        # construct the tree ui element from a TreeController and CourseTree
         top_left_coord = (480, 30)
         bottom_right_coord = (1400, 750)
 
         self.tree_camera = TreeController(self.info_box, self.loader, top_left_coord, bottom_right_coord)
-        self.course_tree = CourseTree(None, -1, [])  # set course_tree to an empty tree as the default value
+        # set course_tree to an empty tree as the default value
+        self.course_tree = CourseTree(None, -1, [])
         self._tree_ui_element = Tree(self.tree_camera, self.course_tree)
 
         # append to ui_components list for handle_event to work properly
         self.ui_components.append(self._tree_ui_element)
 
+        # create the checkbox for selecting whether to simplify the course tree if it's a prereq tree
         self.course_tree_simplify_checkbox = Checkbox((288, 239), 23)
+
+        # append to ui_components list for handle_event to work properly
         self.ui_components.append(self.course_tree_simplify_checkbox)
 
         # course tree "Generate" button
@@ -378,15 +406,18 @@ class MainScreenUI(UIManager):
         self.course_tree_generate_button = Button(
             (165, 275),
             (315, 298),
-            lambda course_manager=self.course_manager, loader=self.loader, main_screen_ui=self: generate_course_tree(
-                self.visualizer_search_field.get_input_text(),
-                self.course_tree_slider.curr_selection,
-                self.course_tree_simplify_checkbox.checked,
-                course_manager,
-                loader,
-                main_screen_ui
-            )
+            lambda course_manager=self.course_manager, loader=self.loader, main_screen_ui=self:
+                generate_course_tree(
+                    self.visualizer_search_field.get_input_text(),
+                    self.course_tree_slider.curr_selection,
+                    self.course_tree_simplify_checkbox.checked,
+                    course_manager,
+                    loader,
+                    main_screen_ui
+                )
         )
+
+        # append to ui_components list for handle_event to work properly
         self.ui_components.append(self.course_tree_generate_button)
 
         #################################
@@ -418,6 +449,7 @@ class MainScreenUI(UIManager):
             (384, 47)
         )
 
+        # append to ui_components list for handle_event to work properly
         self.ui_components.append(self.optimal_path_slider)
 
         # course spectrum "Generate" button
@@ -439,6 +471,10 @@ class MainScreenUI(UIManager):
         # append to ui_components list for handle_event to work properly
         self.ui_components.append(self.optimal_path_generate_button)
 
+    def get_tree_ui_element(self) -> Tree:
+        """Get the private tree UI element attribute"""
+        return self._tree_ui_element
+
     def handle_event(self, ui_event):
         """Handles a UI event"""
         # the default implementation is to call handle_interaction on all elements in the ui_components list
@@ -447,7 +483,6 @@ class MainScreenUI(UIManager):
     def update_visually(self, ui_screen) -> None:
         """Update the screen based on the panel output mode"""
         # update UI elements that depend on panel output mode
-        # print(self.panel_output_mode)
         if self.panel_output_mode == MainScreenUI.TREE_OUTPUT:
             self._tree_ui_element.update_visually(ui_screen)
         elif self.panel_output_mode == MainScreenUI.TEXT_OUTPUT:
@@ -462,7 +497,7 @@ class MainScreenUI(UIManager):
         # TODO: delete show_outline_for_debugging before submission
         ui_screen.blit(self._background_surface, (0, 0))
 
-        # show buttons to screen
+        # draw buttons to screen
         self.summer_offering_button.show_outline_for_debugging(ui_screen)
         self.optimal_path_generate_button.show_outline_for_debugging(ui_screen)
 
@@ -481,7 +516,6 @@ class MainScreenUI(UIManager):
 
         self.course_difference_generate_button.update_visually(ui_screen)
         self.course_difference_generate_button.show_outline_for_debugging(ui_screen)
-
 
         self.optimal_path_slider.update_visually(ui_screen)
         self.optimal_path_slider.show_outline_for_debugging(ui_screen)
@@ -516,6 +550,7 @@ def show_summer_offerings(course: str, main_screen_ui: MainScreenUI) -> None:
 
         # combine data into an informative string
         if most_recent_year == 0:
+            # the course was offered 0 times, so it doesn't have a most recently offered year
             summer_info_text = (f"{course} has been offered in the summer {summer_years_offered} times in its "
                                 f"{total_years_offered} year history.")
         else:
@@ -528,11 +563,16 @@ def show_summer_offerings(course: str, main_screen_ui: MainScreenUI) -> None:
 
 
 def generate_optimal_tree(course: str, metric: str, higher_is_better: bool, course_manager: CourseManager,
-                          loader: PrerequisiteTreeLoader, main_screen_ui: MainScreenUI):
+                          loader: PrerequisiteTreeLoader, main_screen_ui: MainScreenUI) -> None:
     """
-    Display a course spectrum tree based on the given course code
+    Display a tree to the main screen representing the optimal courses to take (defined by metric)
+     in order to reach course
+    Display an empty tree if course has been taken before
+
+    Remove courses that the user has already taken (accessed through course_manager.get_courses())
     """
     try:
+        # check if the course is a valid course code by attempting to load its prerequisite tree
         prereq_tree = loader.get_prerequisite_tree(course)
     except CourseNotFoundError:
         # handle errors by setting the error display text
@@ -545,8 +585,10 @@ def generate_optimal_tree(course: str, metric: str, higher_is_better: bool, cour
         # change panel output mode to error output
         main_screen_ui.panel_output_mode = MainScreenUI.ERROR_OUTPUT
     else:
+        # get the courses user has taken
         courses_taken = course_manager.get_courses()
 
+        # get the CourseTree representation of the optimal tree
         optimal_tree = optimal_path_to_course(
             loader,
             course,
@@ -555,8 +597,9 @@ def generate_optimal_tree(course: str, metric: str, higher_is_better: bool, cour
             higher_is_better
         )
 
+        # display the optimal course tree on the main screen
         main_screen_ui.course_tree = optimal_tree
-        main_screen_ui._tree_ui_element.course_tree = optimal_tree  # TODO: add setter
+        main_screen_ui.get_tree_ui_element().course_tree = optimal_tree
         main_screen_ui.tree_camera.reset_camera()
         main_screen_ui.panel_output_mode = MainScreenUI.TREE_OUTPUT
 
@@ -565,30 +608,36 @@ def generate_course_tree(course_code: str, tree_type: int, simplified: bool, cou
                          loader: PrerequisiteTreeLoader, main_screen_ui: MainScreenUI) -> None:
     """
     Generate a course tree given a course code and tree type
+
     simplified dictates whether the tree is simplified
-    we do not simplify the course tree if it's a postrequisite tree
+    We do not simplify the course tree if it's a postrequisite tree
 
     Preconditions:
         - tree_type in {CourseTreeOptions.PREREQ, CourseTreeOptions.POSTREQ}
     """
     courses_taken = course_manager.get_courses()
 
-
     try:
         if tree_type == CourseTreeOptions.PREREQ:
             # get prereq tree
             prereq_tree = loader.get_prerequisite_tree(course_code)
+
+            # simplify the tree if needed
             if simplified:
                 prereq_tree = prereq_tree.get_simplified_tree(courses_taken)
+
+            # display the tree to the main screen
             main_screen_ui.course_tree = prereq_tree
-            main_screen_ui._tree_ui_element.course_tree = prereq_tree  # TODO: add setter
+            main_screen_ui.get_tree_ui_element().course_tree = prereq_tree
 
         else:
             # tree type is a postreq tree
             # we do not simplify the course tree if it's a postrequisite tree
             postreq_tree = loader.get_postrequisite_tree(course_code)
+
+            # display the tree to the main screen
             main_screen_ui.course_tree = postreq_tree
-            main_screen_ui._tree_ui_element.course_tree = postreq_tree  # TODO: add setter
+            main_screen_ui.get_tree_ui_element().course_tree = postreq_tree
     except CourseNotFoundError:
         # handle errors by setting the error display text
         if course_code == "":
@@ -604,16 +653,22 @@ def generate_course_tree(course_code: str, tree_type: int, simplified: bool, cou
         main_screen_ui.tree_camera.reset_camera()
         main_screen_ui.panel_output_mode = MainScreenUI.TREE_OUTPUT
 
+
 def generate_course_difference_tree(original_course: str,
                                     course_to_compare: str,
                                     course_difference: CourseDifference,
                                     loader: PrerequisiteTreeLoader,
                                     main_screen_ui: MainScreenUI) -> None:
     """
-    Display a course difference tree, showing the difference between the original course and the course to compare
-    """
+    Display three columns of course nodes to the main screen.
 
+    From left to right, the columns contain:
+        1. The postreq courses exclusive to original_course
+        2. The postreq courses shared by original and course_to_compare
+        3. The postreq courses exclusive to course_to_compare
+    """
     try:
+        # postreq tree for original_course
         tree1 = loader.get_postrequisite_tree(original_course)
     except CourseNotFoundError:
         # handle errors by setting the error display text
@@ -628,6 +683,7 @@ def generate_course_difference_tree(original_course: str,
         return
 
     try:
+        # postreq tree for course_to_compare
         tree2 = loader.get_postrequisite_tree(course_to_compare)
     except CourseNotFoundError:
         # handle errors by setting the error display text
@@ -641,14 +697,17 @@ def generate_course_difference_tree(original_course: str,
         main_screen_ui.panel_output_mode = MainScreenUI.ERROR_OUTPUT
         return
 
+    # get the sets of similar and different courses
     similar_courses, tree1_exclusive, tree2_exclusive = course_difference_tree(tree1, tree2).values()
 
+    # pass them to the course difference tree to display
     course_difference.course1_to_compare = original_course
     course_difference.course2_to_compare = course_to_compare
     course_difference.same_to_both = similar_courses
     course_difference.course1_exclusive = tree1_exclusive
     course_difference.course2_exclusive = tree2_exclusive
 
-    # set panel output mode to tree output
+    # set panel output mode to course difference output
+    # this signals that the main screen ui should display course differences
     main_screen_ui.course_difference_tree.reset_camera()
     main_screen_ui.panel_output_mode = MainScreenUI.COURSE_DIFFERENCE_OUTPUT

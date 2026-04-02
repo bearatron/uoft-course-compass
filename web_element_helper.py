@@ -57,6 +57,7 @@ class WebElementHelper:
         Returns a ReturnStatus object
         """
         try:
+            # check if the WebElement has been removed from the DOM
             if check_stale:
                 if self.web_element is None:
                     print(f"{self._description.capitalize()} is None, try calling this function with check_stale = "
@@ -73,8 +74,10 @@ class WebElementHelper:
                 EC.visibility_of_element_located((self._locator_type, self._locator_str))
             )
         except TimeoutException:
+            # the search for the element timed out
             print(f"{self._description.capitalize()} was not located or took too long to load")
             return ReturnStatus(False, None)
         else:
+            # success! the element was found
             print(f"{self._description.capitalize()} found")
             return ReturnStatus(True, self.web_element)

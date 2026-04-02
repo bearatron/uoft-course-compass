@@ -476,11 +476,6 @@ class PrerequisiteTreeLoader:
 
         return postrequisite_tree
 
-    def get_prerequisite_trees(self) -> dict[str, CourseTree]:  # TODO: get rid of this
-        """Return all the prerequisite trees stored in this Loader
-        """
-        return self._prerequisite_trees.copy()
-
     def get_name_and_description(self, course_code: str) -> tuple[str, str]:
         """Return the name and description that correspond to the given course_code
         """
