@@ -211,11 +211,6 @@ class Slider(UIManager):
         # draw to screen
         ui_screen.blit(selected_option_surface, coords)
 
-    def show_outline_for_debugging(self, ui_screen) -> None:
-        # show outline of options
-        for button in self.option_buttons:
-            pygame.draw.rect(ui_screen, (0, 255, 0), button.bounds.rect, 2)
-
 
 class MainScreenUI(UIManager):
     """
@@ -494,36 +489,25 @@ class MainScreenUI(UIManager):
         else:
             print("!!! No valid screen panel output mode was set !!!")
 
-        # TODO: delete show_outline_for_debugging before submission
         ui_screen.blit(self._background_surface, (0, 0))
 
         # draw buttons to screen
-        self.summer_offering_button.show_outline_for_debugging(ui_screen)
-        self.optimal_path_generate_button.show_outline_for_debugging(ui_screen)
 
         self.visualizer_search_field.update_visually(ui_screen)
-        self.visualizer_search_field.show_outline_for_debugging(ui_screen)
 
         self.course_tree_slider.update_visually(ui_screen)
-        self.course_tree_slider.show_outline_for_debugging(ui_screen)
-        self.course_tree_generate_button.show_outline_for_debugging(ui_screen)
 
         self.course_tree_simplify_checkbox.update_visually(ui_screen)
-        # self.course_tree_simplify_checkbox.show_outline_for_debugging(ui_screen)
 
         self.course_difference_search_field.update_visually(ui_screen)
-        self.course_difference_search_field.show_outline_for_debugging(ui_screen)
 
         self.course_difference_generate_button.update_visually(ui_screen)
-        self.course_difference_generate_button.show_outline_for_debugging(ui_screen)
 
         self.optimal_path_slider.update_visually(ui_screen)
-        self.optimal_path_slider.show_outline_for_debugging(ui_screen)
 
         # draw the info panel last, as it should be displayed on top of everything
         if self.panel_output_mode == MainScreenUI.TREE_OUTPUT:
             self.info_box.update_visually(ui_screen)
-            self._tree_ui_element.show_outline_for_debugging(ui_screen)
 
 
 def show_summer_offerings(course: str, main_screen_ui: MainScreenUI) -> None:

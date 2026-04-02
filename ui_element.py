@@ -145,11 +145,6 @@ class TextField(UIElement):
         #display text to screen
         ui_screen.blit(text_surface, justified_text_format)
 
-    #TODO: REMOVE
-    def show_outline_for_debugging(self, ui_screen) -> None:
-        # show outline of field
-        pygame.draw.rect(ui_screen, (0, 0, 0), self.bounds.rect, 2)
-
     def get_input_text(self) -> str:
         """Return the current user input."""
         return self._input_text
@@ -209,16 +204,6 @@ class Button(UIElement):
         """
         return
 
-    #TODO: REMOVE
-    def show_outline_for_debugging(self, ui_screen: pygame.Surface) -> None:
-
-        # Color based on state
-        if self._is_pressed:
-            color = (255, 0, 0)
-        else:
-            color = (0, 255, 0)
-
-        pygame.draw.rect(ui_screen, color, self.bounds.rect, 2)  # outline only
 
 
 class Checkbox(Button):
@@ -768,7 +753,7 @@ class TreeController(UIElement):
                             self.course_info_box.is_enabled = True
                             self.update_info_box()
                         self.code_clicked = None
-                    # if x_pos is on the white space, and its clicking ourside a course, info pannel closes
+                    # if x_pos is on the white space, and its clicking outside a course, info pannel closes
                     elif current_mouse_pos[0] >= 475:
                         self.course_info_box.is_enabled = False
 
@@ -793,9 +778,6 @@ class TreeController(UIElement):
             return
         self.course_info_box.update_information(selected_course_code, course_title, description)
 
-    def show_outline_for_debugging(self, ui_screen: pygame.Surface) -> None:
-        color = (255, 0, 255)
-        pygame.draw.rect(ui_screen, color, self.rect, 2)
 
 
 class CourseDifference(TreeController):
@@ -1092,9 +1074,6 @@ class Tree(UIElement):
             for subtree in tree.get_subtrees():
                 width_so_far += self.tree_width(subtree)
             return width_so_far
-
-    def show_outline_for_debugging(self, ui_screen: pygame.Surface) -> None:
-        self.tree_camera.show_outline_for_debugging(ui_screen)
 
 
 if __name__ == '__main__':
