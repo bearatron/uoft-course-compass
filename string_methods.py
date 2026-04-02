@@ -1,4 +1,7 @@
-"""Various string methods that are useful for parsing course codes"""
+"""Various string methods that are useful for parsing course codes
+
+This file is Copyright (c) 2026 Shayan Bhatti, Jacob Chislett, Ethan Diep, Shuhan Yuan
+"""
 
 
 def has_unnested(string: str, char: str) -> bool:

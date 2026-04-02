@@ -1,4 +1,9 @@
-"""docstring"""  # TODO:
+"""Docstring  # TODO: insert docstring
+
+This file is Copyright (c) 2026 Shayan Bhatti, Jacob Chislett, Ethan Diep, Shuhan Yuan
+"""
+
+
 import pygame
 from typing import Optional
 import textwrap

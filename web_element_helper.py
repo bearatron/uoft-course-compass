@@ -1,3 +1,8 @@
+"""Docstring  # TODO: insert docstring
+
+This file is Copyright (c) 2026 Shayan Bhatti, Jacob Chislett, Ethan Diep, Shuhan Yuan
+"""
+
 from dataclasses import dataclass
 from typing import Optional
 from selenium.common import TimeoutException

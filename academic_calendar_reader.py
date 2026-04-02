@@ -1,4 +1,7 @@
-"""A collection of methods used to load and parse information from the U of T Academic Calendar website"""
+"""A collection of methods used to load and parse information from the U of T Academic Calendar website
+
+This file is Copyright (c) 2026 Shayan Bhatti, Jacob Chislett, Ethan Diep, Shuhan Yuan
+"""
 
 from bs4 import BeautifulSoup
 import requests

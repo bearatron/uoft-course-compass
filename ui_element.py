@@ -1,4 +1,8 @@
-"""docstring"""  # TODO:
+"""Docstring  # TODO: insert docstring
+
+This file is Copyright (c) 2026 Shayan Bhatti, Jacob Chislett, Ethan Diep, Shuhan Yuan
+"""
+
 from __future__ import annotations
 from typing import Callable, Optional
 import webbrowser

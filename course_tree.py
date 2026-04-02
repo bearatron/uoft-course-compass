@@ -1,4 +1,7 @@
-"""The definition of the Course Tree class, used to store prerequisite information for a course as a tree"""
+"""The definition of the Course Tree class, used to store prerequisite information for a course as a tree
+
+This file is Copyright (c) 2026 Shayan Bhatti, Jacob Chislett, Ethan Diep, Shuhan Yuan
+"""
 from __future__ import annotations
 
 from typing import Any, Optional
