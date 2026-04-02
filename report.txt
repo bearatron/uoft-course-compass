@@ -30,13 +30,15 @@ Our project uses two primary datasets: data scraped from the University of Toron
 \textbf{Dataset 1: Academic Calendar}: \\
 The academic calendar dataset was collected by scaping the UofT Arts and Science Academic Calendar website (https://artsci.calendar.utoronto.ca) using requests library and BeautifulSoup. For each course, we extracted the course code, full course name, description, and prerequisite string. We did not extract data for all the courses, only those from the Mathematics, Computer Science, Physics, Economics, and Statistical Sciences departments.\\
 
+After our dataset is gathered, it is not in a format that can easily have computations performed on it. We must first clean and parse the data, and this is all handled by the \verb|PrerequisiteTreeLoader| class in the \verb|academic\_calendar\_reader| file. the \verb|prerequisite\_tree\_loader| has a method \verb|load\_from\_programs| which initializes all the prerequisite trees for every course in the given programs by calling the other helper methods in the file. This involves accessing the raw prerequisite strings from the academic calendar website, stepping through the strings character by character and identifying connectives ('/', ',') and course codes, and identifying the underlying logical structure of the prerequisite strings. Once all the courses have been loaded, \verb|PrerequisiteTreeLoader| has a \verb|save\_to\_file| method which saves all information gathered from the website and parsed into a json file. This includes the course codes, names, descriptions, and properly formatted prerequisite strings. This is to make sure that the long data gathering phase does not need to be run every time the application is run, so that on subsequent runs all the information can simply be loaded from the json file. We consider that json file to be the properly cleaned and formatted dataset.
+
 The prerequisite string has specific notation that is defined by the calendar:
 slashes (/) separate alternative prerequisites,
 commas (\verb|,|) separate cumulative requirements,
 and parentheses creates a group of courses.
-Some courses also specify minimum grade requirements alongside their prerequisite course codes (e.g., \verb|CSC148H1(60%)|). However, these minimum grade requirements are not standardized across departments or even within departments, so extracting this information is not trivial. Keeping these in mind, our program parses these strings into a structured internal format (\verb|CourseTree|) that is in \verb|course_tree.py|. Each node of the tree is either a course code (a leaf node), or a logical operator (\verb|ALL| or \verb|CHOOSE|) grouping its children. Grade requirements are stored as integer attributes on leaf nodes (\verb|-1| if no grade requirement is specified). \\\\
+Some courses also specify minimum grade requirements alongside their prerequisite course codes (e.g., \verb|CSC148H1(60%)|). However, these minimum grade requirements are not standardized across departments or even within departments, so extracting this information is not trivial. Keeping these in mind, our program parses these strings into a structured internal format (\verb|CourseTree|) that is in \verb|course_tree.py|. Each node of the tree is either a course code (a leaf node), or a logical operator (\verb|ALL| or \verb|CHOOSE|) grouping its children. Grade requirements are stored as integer attributes on leaf nodes (\verb|-1| if no grade requirement is specified). \\
 
-Links to individual course and program pages on the Academic Calendar are generated using helper functions in \verb|link_of_course.py|, which format course and program codes into their corresponding URLs for display to users. \\ \\ \\ \\
+Links to individual course and program pages on the Academic Calendar are generated using helper functions in \verb|link_of_course.py|, which format course and program codes into their corresponding URLs for display to users. \\ \\
 
 
 \textbf{Dataset 2: UofT Course Evaluations:} \\
@@ -56,6 +58,8 @@ Each record in the resulting CSV contains the following fields: Division, Depart
 Our project uses two kinds of data to represent the UofT course domain: academic calendar data and course evaluation data. The academic calendar data is loaded using \verb|load_course_information()| in \verb|academic_calendar_reader.py|, which returns a dictionary mapping each course code (a string) to its prerequisite string, and another dictionary that maps each course code to its full name and description. The course evaluation data is stored in \verb|.csv| files such as \verb|mathematics.csv| and \verb|demo.csv|, scraped using the \verb|CourseEvalsParser| class in \verb|course_evals_parser.py|. \\
 
 Trees play the central role in our data representation. The \verb|CourseTree| class defined in \verb|course_tree.py| is the core data structure of the entire project. Each \verb|CourseTree| node has three attributes: \verb|_root|, which stores either a course code, \verb|'ALL'|, or \verb|'CHOOSE'|; \verb|_required_grade|, an integer storing the minimum grade requirement for that course (-1 if none); and \verb|_subtrees|, a list of child \verb|CourseTree| nodes. Leaf nodes always represent individual course codes, while internal nodes represent either logical relationships (\verb|ALL| meaning every child course is required, and \verb|CHOOSE| meaning at least one child is required) or more course codes. This maps directly onto the academic calendar's notation where commas indicate cumulative requirements and slashes indicate alternatives. The tree is hierarchical by design, allowing the user to trace a clear path of all courses needed to reach a target course, at any level of depth. \\
+
+For the \verb|CourseTree| class that we use to store prerequisite information for a given course, we borrowed several methods from the in-class implementation, and also added several of our own. All of the basic features like getting a string representation of the tree were taken, but we added several computations like generating a course tree from a prerequisite string, and simplifying a course tree based on courses that were taken by the user.
 
 
 \subsection{Major Computations}
@@ -111,11 +115,8 @@ By using these libraries, we were able to parse through the course website and g
 \textbf{Libraries used:}
 bs4,
 requests,
-json,
 webbrowser,
-textwrap,
-
-
+pygame
 
 
 \section{Changes to Our Project Plan:}
