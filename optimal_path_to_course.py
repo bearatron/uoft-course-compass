@@ -1,4 +1,14 @@
-"""Docstring  # TODO: insert docstring
+"""Optimal Course Pathway Generation.
+
+This module provides the core logic for calculating the most efficient or highly
+rated prerequisite pathway to a target course. It introduces the `CourseRatingsTree`,
+which extends standard course trees by integrating evaluation metrics (e.g., workload,
+overall quality) parsed from pre-computed JSON data.
+
+By applying a greedy algorithm, this module evaluates and resolves "CHOOSE" nodes
+within the prerequisite structure. It returns a simplified `CourseTree` that
+recommends the optimal course sequence tailored to both the student's previously
+completed courses and their selected optimization metric.
 
 This file is Copyright (c) 2026 Shayan Bhatti, Jacob Chislett, Ethan Diep, Shuhan Yuan
 """
@@ -35,7 +45,6 @@ def optimal_path_to_course(
     tree = loader.get_prerequisite_tree(course_code)
     tree = tree.get_simplified_tree(courses_taken)
 
-
     # convert it to a CourseRatingsTree
     ratings_tree = CourseRatingsTree.from_course_tree(tree, metric_name, higher_is_better)
 
@@ -45,6 +54,7 @@ def optimal_path_to_course(
 
 class CourseDataNotFoundError(Exception):
     """Exception raised when attempting to access non-existent course data from a file"""
+
     def __str__(self) -> str:
         """Return a string representation of this error"""
         return "No such course data was found. Course either doesn't exist or has no course evals."
