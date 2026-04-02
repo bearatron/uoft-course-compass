@@ -1,8 +1,13 @@
-"""Docstring  # TODO: insert docstring
+"""Main Application Window and Event Loop.
+
+This module provides the `TreeVisualizer` class, which serves as the core
+window manager and event loop runner for the Pygame application. It handles
+display initialization, asset loading (via `_TreeVisualizerImages`), and
+state management to navigate between the start screen, course selection
+menu, and the main visualizer interface.
 
 This file is Copyright (c) 2026 Shayan Bhatti, Jacob Chislett, Ethan Diep, Shuhan Yuan
 """
-
 
 import pygame
 
