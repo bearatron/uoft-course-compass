@@ -33,7 +33,7 @@ if __name__ == "__main__":
         print('=' * 6)
         metric = "workload"
         higher_is_better = False
-        print(f"Ratings for {metric} ({"higher is better" if higher_is_better else "lower is better"}):")
+        print(f"Ratings for {metric} ({'higher is better' if higher_is_better else 'lower is better'}):")
         print(CourseRatingsTree.from_course_tree(simplified_tree, metric, higher_is_better))
         print('-' * 6)
         print("optimal path:")
