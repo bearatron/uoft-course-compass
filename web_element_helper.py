@@ -1,4 +1,4 @@
-"""Docstring  # TODO: insert docstring
+"""Selenium web element utilities for robust finding, waiting, and stale checking
 
 This file is Copyright (c) 2026 Shayan Bhatti, Jacob Chislett, Ethan Diep, Shuhan Yuan
 """
