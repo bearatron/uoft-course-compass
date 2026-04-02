@@ -58,7 +58,7 @@ class TreeVisualizer:
         icon = pygame.image.load("course_compass_logo.png")
         pygame.display.set_icon(icon)
 
-        self.screen_mode = "main"
+        self.screen_mode = "start_screen"
 
         self._initialize_images()
 
@@ -142,20 +142,21 @@ class TreeVisualizer:
                 # uncomment below for dev mode
                 if event.type == pygame.QUIT:
                     done = True
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_RETURN:
+                        if self.screen_mode == "start_screen":
+                            self.screen_mode = "course_selection"
+                        else:
+                            self.screen_mode = "main"
                 if self.screen_mode == "start_screen":
                     self.start_screen_ui.handle_event(event)
                 elif self.screen_mode == "course_selection":
                     self.course_selection_ui.handle_event(event)
-                    if event.type == pygame.KEYDOWN and event.key == pygame.K_BACKSPACE:
-                        screen_mode = "main"  # TODO: REMOVE - TEMP
                 elif self.screen_mode == "main":
                     # main_screen_ui.tree_camera.handle_interaction(event) #TODO:redundent
                     self.main_screen_ui.handle_event(event)
                     # TEMPORARLY uses enter key to take input from search bar, eventually this will be a button
                     # TODO: error check input
-                    if event.type == pygame.KEYDOWN:
-                        if event.key == pygame.K_RETURN:
-                            pass
 
             if self.screen_mode == "start_screen":
                 self.screen.blit(self.images.start_page, (0, 0))

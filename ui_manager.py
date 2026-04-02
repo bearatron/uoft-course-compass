@@ -19,7 +19,7 @@ from course_tree import CourseTree
 from academic_calendar_reader import PrerequisiteTreeLoader, CourseNotFoundError
 
 from optimal_path_to_course import optimal_path_to_course
-from post_req_tree import PostrequisiteTreeLoader, course_difference_tree
+from post_req_tree import course_difference_tree
 
 class CourseManager:
     """
@@ -304,7 +304,6 @@ class MainScreenUI(UIManager):
             (418, 73)
         )
         # append to ui_components list for handle_event to work properly
-        # TODO: remove once handle_event is implemented based on panel_output mode
         self.ui_components.append(self.visualizer_search_field)
 
         #####################################
@@ -318,7 +317,6 @@ class MainScreenUI(UIManager):
             lambda main_screen_ui=self: show_summer_offerings(self.visualizer_search_field.input_text, main_screen_ui),
         )
         # append to ui_components list for handle_event to work properly
-        # TODO: remove once handle_event is implemented based on panel_output mode
         self.ui_components.append(self.summer_offering_button)
 
         ###########################################
@@ -364,12 +362,11 @@ class MainScreenUI(UIManager):
         top_left_coord = (480, 30)
         bottom_right_coord = (1400, 750)
 
-        self.tree_camera = TreeController(self.info_box, self.loader, top_left_coord, bottom_right_coord) #TODO: ETHAN
+        self.tree_camera = TreeController(self.info_box, self.loader, top_left_coord, bottom_right_coord)
         self.course_tree = CourseTree(None, -1, [])  # set course_tree to an empty tree as the default value
         self._tree_ui_element = Tree(self.tree_camera, self.course_tree)
 
         # append to ui_components list for handle_event to work properly
-        # TODO: remove once handle_event is implemented based on panel_output mode
         self.ui_components.append(self._tree_ui_element)
 
         self.course_tree_simplify_checkbox = Checkbox((288, 239), 23)
@@ -440,13 +437,11 @@ class MainScreenUI(UIManager):
         )
 
         # append to ui_components list for handle_event to work properly
-        # TODO: remove once handle_event is implemented based on panel_output mode
         self.ui_components.append(self.optimal_path_generate_button)
 
     def handle_event(self, ui_event):
         """Handles a UI event"""
         # the default implementation is to call handle_interaction on all elements in the ui_components list
-        # TODO: call handle_interaction based on panel_output_mode
         super().handle_event(ui_event)
 
     def update_visually(self, ui_screen) -> None:
@@ -454,7 +449,7 @@ class MainScreenUI(UIManager):
         # update UI elements that depend on panel output mode
         # print(self.panel_output_mode)
         if self.panel_output_mode == MainScreenUI.TREE_OUTPUT:
-            self._tree_ui_element.update_visually(ui_screen)  # TODO; second bug fix
+            self._tree_ui_element.update_visually(ui_screen)
         elif self.panel_output_mode == MainScreenUI.TEXT_OUTPUT:
             self.text_displayer.update_visually(ui_screen)
         elif self.panel_output_mode == MainScreenUI.ERROR_OUTPUT:
@@ -493,7 +488,7 @@ class MainScreenUI(UIManager):
 
         # draw the info panel last, as it should be displayed on top of everything
         if self.panel_output_mode == MainScreenUI.TREE_OUTPUT:
-            self.info_box.update_visually(ui_screen)  # TODO: THIRD BUG FIX
+            self.info_box.update_visually(ui_screen)
             self._tree_ui_element.show_outline_for_debugging(ui_screen)
 
 
@@ -511,7 +506,6 @@ def show_summer_offerings(course: str, main_screen_ui: MainScreenUI) -> None:
         summer_offerings_data = data[course]["summer_offerings"]
     except KeyError:
         # course is not in json
-        # TODO: handle error
         print(f"[ERROR] Could not find '{course}' in course_data_computed.json")
         main_screen_ui.error_displayer.display_text = f"Could not find summer course data for '{course}'"
         main_screen_ui.panel_output_mode = MainScreenUI.ERROR_OUTPUT
@@ -553,16 +547,6 @@ def generate_optimal_tree(course: str, metric: str, higher_is_better: bool, cour
     else:
         courses_taken = course_manager.get_courses()
 
-        # TODO: remove in final submission
-        # default values of courses_taken used for testing
-        courses_taken = {
-            'MAT137Y1': 100,
-            'CSC110Y1': 100,
-            'CSC111H1': 100,
-            'MAT223H1': 100,
-            'STA237H1': 100
-        }
-
         optimal_tree = optimal_path_to_course(
             loader,
             course,
@@ -589,15 +573,6 @@ def generate_course_tree(course_code: str, tree_type: int, simplified: bool, cou
     """
     courses_taken = course_manager.get_courses()
 
-    # TODO: remove in final submission
-    # default values of courses_taken used for testing
-    courses_taken = {
-        'MAT137Y1': 100,
-        'CSC110Y1': 100,
-        'CSC111H1': 100,
-        'MAT223H1': 100,
-        'STA237H1': 100
-    }
 
     try:
         if tree_type == CourseTreeOptions.PREREQ:
@@ -668,6 +643,8 @@ def generate_course_difference_tree(original_course: str,
 
     similar_courses, tree1_exclusive, tree2_exclusive = course_difference_tree(tree1, tree2).values()
 
+    course_difference.course1_to_compare = original_course
+    course_difference.course2_to_compare = course_to_compare
     course_difference.same_to_both = similar_courses
     course_difference.course1_exclusive = tree1_exclusive
     course_difference.course2_exclusive = tree2_exclusive
@@ -675,4 +652,3 @@ def generate_course_difference_tree(original_course: str,
     # set panel output mode to tree output
     main_screen_ui.course_difference_tree.reset_camera()
     main_screen_ui.panel_output_mode = MainScreenUI.COURSE_DIFFERENCE_OUTPUT
-

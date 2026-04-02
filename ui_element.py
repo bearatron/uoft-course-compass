@@ -66,7 +66,6 @@ class TextField(UIElement):
         width = bottom_right_cord[0] - top_left_cord[0]
         height = bottom_right_cord[1] - top_left_cord[1]
         self.rect = pygame.Rect(top_left_cord[0], top_left_cord[1], width, height)
-        # TODO: see if all vars here are needed - also can i do this much in innit?
 
     def handle_interaction(self, ui_event: pygame.event.Event) -> None:
         if ui_event.type == pygame.KEYDOWN and self.is_active:
@@ -104,7 +103,7 @@ class Button(UIElement):
     bottom_right_cord: tuple
     is_pressed: bool
     rect: pygame.Rect
-    on_click: Callable[[], None]  # TODO:i learned this today, ask group if okay
+    on_click: Callable[[], None]
 
     def __init__(self, top_left_cord: tuple, bottom_right_cord: tuple, on_click: Callable[[], None]) -> None:
         self.is_pressed = False
@@ -326,10 +325,12 @@ class TextDisplayer(UIElement):
 
 
 def _score_visualizer(score: int, y_pos: int, star_image, ui_screen) -> None:
+    #precondition:
+        #-  score <= 5 and score >= 0
     if score <= 5:
         for i in range(score):
             ui_screen.blit(star_image, (261 + 36 * i, y_pos))
-    #todo:raise error
+
 
 
 class TreeController(UIElement):
@@ -415,9 +416,6 @@ class TreeController(UIElement):
                     self.zoom_factor *= 1.1
                 elif mouse_event.y < 0:
                     self.zoom_factor *= 0.9
-                # TODO:is limit on zoom needed?
-                # screen_zoom_factor = max(0.3, min(screen_zoom_factor, 3))
-            # the start of mouse drag based tree movement
             if mouse_event.type == pygame.MOUSEBUTTONDOWN and mouse_event.button == 1:
                 self.dragging = True
                 mouse_position = pygame.mouse.get_pos()
@@ -463,7 +461,6 @@ class TreeController(UIElement):
 
     def update_info_box(self) -> None:
         selected_course_code = self.code_clicked
-        # TODO: Hi Shayan, I added this march 29 8:40 pm  - Jacob
         try:
             course_title, description = self.loader.get_name_and_description(self.code_clicked)
         except CourseNotFoundError:
@@ -486,6 +483,8 @@ class TreeController(UIElement):
         pygame.draw.rect(ui_screen, color, self.rect, 2)
 
 class CourseDifference(TreeController):
+    course1_to_compare: str
+    course2_to_compare: str
     course1_exclusive: set[str]
     course2_exclusive: set[str]
     same_to_both: set[str]
@@ -494,6 +493,8 @@ class CourseDifference(TreeController):
 
     def __init__(self, course_info_box: VisualizerInfoBox, loader: PrerequisiteTreeLoader) -> None:
         super().__init__(course_info_box, loader,(480, 30), (1400, 750))
+        self.course1_to_compare = ""
+        self.course2_to_compare = ""
         self.course1_exclusive = set()
         self.course2_exclusive = set()
         self.same_to_both = set()
@@ -508,30 +509,42 @@ class CourseDifference(TreeController):
 
     def update_visually(self, ui_screen: pygame.Surface) -> None:
         self.node_course_code_map.clear()
-        HORIZONTAL_SPACING = 300
-        VERTICAL_SPACING = 300
+
+        HORIZONTAL_SPACING = int(400 * self.zoom_factor)
+        VERTICAL_SPACING = int(150 * self.zoom_factor)
+
+        TITLE_OFFSET_FACTOR = 50
+        font_size = max(12, int(24 * self.zoom_factor))
+        font = pygame.font.Font("FjallaOne-Regular.ttf", font_size)
+        text = font.render(f"Courses Exclusive To {self.course1_to_compare}:", True, (35, 68, 119))
+        ui_screen.blit(text, (self.x_pos_tree - HORIZONTAL_SPACING,  self.y_pos_tree))
+
         for idx, course_code in enumerate(self.course1_exclusive):
             self.draw_node(
                 (course_code, ""),
-                (self.x_pos_tree - HORIZONTAL_SPACING, self.y_pos_tree + idx * VERTICAL_SPACING),
+                (self.x_pos_tree - HORIZONTAL_SPACING, self.y_pos_tree + (idx+1) * VERTICAL_SPACING - TITLE_OFFSET_FACTOR),
                 self.zoom_factor,
                 [],
                 ui_screen
             )
 
+        text = font.render("Courses Mutual to Both:", True, (35, 68, 119))
+        ui_screen.blit(text, (self.x_pos_tree, self.y_pos_tree))
         for idx, course_code in enumerate(self.same_to_both):
             self.draw_node(
                 (course_code, ""),
-                (self.x_pos_tree, self.y_pos_tree + idx * VERTICAL_SPACING),
+                (self.x_pos_tree, self.y_pos_tree + (idx+1) * VERTICAL_SPACING - TITLE_OFFSET_FACTOR),
                 self.zoom_factor,
                 [],
                 ui_screen
             )
 
+        text = font.render(f"Courses Exclusive To {self.course2_to_compare}:", True, (35, 68, 119))
+        ui_screen.blit(text, (self.x_pos_tree + HORIZONTAL_SPACING, self.y_pos_tree))
         for idx, course_code in enumerate(self.course2_exclusive):
             self.draw_node(
                 (course_code, ""),
-                (self.x_pos_tree + HORIZONTAL_SPACING, self.y_pos_tree + idx * VERTICAL_SPACING),
+                (self.x_pos_tree + HORIZONTAL_SPACING, self.y_pos_tree + (idx+1) * VERTICAL_SPACING - TITLE_OFFSET_FACTOR),
                 self.zoom_factor,
                 [],
                 ui_screen
@@ -739,5 +752,3 @@ class Tree(UIElement):
 
     def show_outline_for_debugging(self, ui_screen: pygame.Surface) -> None:
         self.tree_camera.show_outline_for_debugging(ui_screen)
-
-
