@@ -42,6 +42,7 @@ class UIElement:
         """
         raise NotImplementedError
 
+
 @dataclass
 class _BoundingBox:
     """Stores the position and rectangular area of a UI element.
@@ -62,6 +63,7 @@ class _BoundingBox:
     top_left_cord: tuple[int, int]
     bottom_right_cord: tuple[int, int]
     rect: pygame.Rect
+
 
 class TextField(UIElement):
     """
@@ -99,7 +101,7 @@ class TextField(UIElement):
         height = bottom_right_cord[1] - top_left_cord[1]
         rect = pygame.Rect(top_left_cord[0], top_left_cord[1], width, height)
 
-        #storing the relevant coordinates and rect object in respective data class
+        # storing the relevant coordinates and rect object in respective data class
         self.bounds = _BoundingBox(top_left_cord, bottom_right_cord, rect)
 
     def handle_interaction(self, ui_event: pygame.event.Event) -> None:
@@ -130,19 +132,19 @@ class TextField(UIElement):
         """
         font = pygame.font.Font("FjallaOne-Regular.ttf", self.font_size)
 
-        #change text colour depending on if field is focused
+        # change text colour depending on if field is focused
         if self._is_active:
             color = (0, 0, 200)
         else:
             color = (0, 0, 0)
 
         text_surface = font.render(self._input_text, True, color)
-        #Center text vertically within the field rectangle
+        # Center text vertically within the field rectangle
         center_of_rect = self.bounds.rect.center
-        #Ensure it is in justified text format
+        # Ensure it is in justified text format
         justified_text_format = (self.bounds.top_left_cord[0], center_of_rect[1] - self.font_size // 2)
 
-        #display text to screen
+        # display text to screen
         ui_screen.blit(text_surface, justified_text_format)
 
     def get_input_text(self) -> str:
@@ -203,7 +205,6 @@ class Button(UIElement):
         intentionally left empty to allow the UIManager to skip it without errors.
         """
         return
-
 
 
 class Checkbox(Button):
@@ -779,7 +780,6 @@ class TreeController(UIElement):
         self.course_info_box.update_information(selected_course_code, course_title, description)
 
 
-
 class CourseDifference(TreeController):
     """
     A class for displaying the Course Difference tree
@@ -952,14 +952,17 @@ class Tree(UIElement):
     course_tree: CourseTree
 
     def __init__(self, tree_camera: TreeController, course_tree: CourseTree) -> None:
+        """Initialize tree element"""
         super().__init__()
         self.tree_camera = tree_camera
         self.course_tree = course_tree
 
     def handle_interaction(self, ui_event: pygame.event.Event) -> None:
+        """Handle drag, move element"""
         self.tree_camera.handle_interaction(ui_event)
 
     def update_visually(self, ui_screen: pygame.Surface) -> None:
+        """Draw the tree to the screen"""
         self.tree_camera.node_course_code_map.clear()
 
         self.draw_tree_visualization(self.course_tree, (self.tree_camera.x_pos_tree,

@@ -228,8 +228,6 @@ class TreeVisualizer:
         self.font = pygame.font.Font("FjallaOne-Regular.ttf", 12)
         # for visual look of app window
         pygame.display.set_caption("U of T Course Compass")
-        icon = pygame.image.load("course_compass_logo.png")
-        pygame.display.set_icon(icon)
         # set the screen the app starts on
         self.screen_mode = "start_screen"
 
