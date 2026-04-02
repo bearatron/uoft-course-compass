@@ -1,8 +1,13 @@
-"""Docstring  # TODO: insert docstring
+"""
+Academic Calendar URL Generation Utilities.
+
+This module provides helper functions to programmatically construct URLs
+for the University of Toronto Arts & Science academic calendar. It includes
+utilities to format course codes and parse program names into valid web links
+for direct access to official course and program descriptions.
 
 This file is Copyright (c) 2026 Shayan Bhatti, Jacob Chislett, Ethan Diep, Shuhan Yuan
 """
-
 
 def course_link_generate(course_name: str) -> str:
     """
