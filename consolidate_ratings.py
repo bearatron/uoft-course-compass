@@ -52,6 +52,7 @@ def group_by_course_code(filenames: list[str], output_filename: str) -> None:
         - all([f.rsplit(".", 1)[1] == "csv" for f in filenames])  # all filenames provided end in .csv
         - output_filename.rsplit(".", 1)[1] == "json"  # output_filename ends in .json
     """
+    print(f"Begin grouping by course code: {filenames}")
     course_data = {}
 
     for filename in filenames:
@@ -106,6 +107,8 @@ def group_by_course_code(filenames: list[str], output_filename: str) -> None:
     with open(output_filename, "a") as write_file:
         json.dump(course_data, write_file, indent=2)
 
+    print(f"End grouping by course code. Output: {output_filename}")
+
 
 def compute(filename: str, output_filename: str) -> None:
     """
@@ -118,6 +121,7 @@ def compute(filename: str, output_filename: str) -> None:
         - filename.rsplit(".", 1)[1] == "json"  # filename ends in .json
         - output_filename.rsplit(".", 1)[1] == "json"  # output_filename ends in .json
     """
+    print(f"Begin computing {filename}")
     round_ndigits = 2  # number of decimal places to round averages to
 
     course_data = {}
@@ -127,6 +131,7 @@ def compute(filename: str, output_filename: str) -> None:
     computed = {}
 
     for course_code in course_data:
+        print(f"computing data for {course_code}")
         course_offerings = course_data[course_code]
 
         num_responses = _compute_num_responses(course_offerings)
@@ -180,6 +185,7 @@ def compute(filename: str, output_filename: str) -> None:
         # write computed data to the file
         with open(output_filename, "a") as write_file:
             json.dump(computed, write_file, indent=2)
+    print(f"End compute. Output: {output_filename}")
 
 
 ##########################################
