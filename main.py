@@ -24,13 +24,14 @@ if __name__ == "__main__":
     # loader.load_from_programs(['Computer Science'])
     # loader.save_to_file('dataset_example.json')
 
-
     # |----------------------------------------------------------------------------------------------------------------|
     # | UNCOMMENT THE BELOW CODE FOR A DEMONSTRATION ON HOW THE COURSE EVALUATION DATASET IS GENERATED                 |
     # | This code will scrape information from the UofT course evaluations calendar website, and                       |
     # | rewrite them in a format that is easier to run computations on and save all information. The output            |
-    # | can found in demo.csv.
+    # | can found in demo.csv.                                                                                         |
     # | NOTE: GOOGLE CHROME MUST BE INSTALLED ON YOUR COMPUTER FOR THIS TO RUN                                         |
+    # | IMPORTANT: A NEW CHROME WINDOW WILL OPEN ON YOUR COMPUTER. DO NOT INTERACT WITH THE WEBPAGE IN ANY WAY.        |
+    # |            IT IS SCRAPING THE DATA.                                                                            |
     # |----------------------------------------------------------------------------------------------------------------|
     # from course_evals_parser import CourseEvalsParser
     # CourseEvalsParser.demo()
