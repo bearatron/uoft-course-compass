@@ -318,6 +318,15 @@ class VisualizerInfoBox(UIElement):
 
     def __init__(self, x_pos: int, y_pos: int):
         """Initialize the visualizer info box"""
+        PANEL_SIZE = (453, 750)
+        STAR_SIZE = (30, 30)
+        SHIELD_SIZE = (455, 778)
+
+        OPEN_BTN_OFFSET_TOPLEFT = (45, 0)
+        OPEN_BTN_OFFSET_BOTTOMRIGHT = (350, 45)
+
+        READ_MORE_TOPLEFT = (159, 393)
+        READ_MORE_BOTTOMRIGHT = (318, 414)
 
         self.x_pos = x_pos
         self.y_pos = y_pos
@@ -328,15 +337,27 @@ class VisualizerInfoBox(UIElement):
         self.is_open = False
 
         #loading all relevant images and storing in list
-        background_image = pygame.transform.smoothscale(pygame.image.load("info_panel_cc_v3.png"), (453, 750))
+        background_image = pygame.transform.smoothscale(pygame.image.load("info_panel_cc_v3.png"), PANEL_SIZE)
         filled_star_image = pygame.transform.smoothscale(pygame.image.load(
-            "ui_star_course_compass.png"), (30, 30))
-        background_shield = pygame.transform.smoothscale(pygame.image.load("info_box_shield.png"), (455, 778))
+            "ui_star_course_compass.png"), STAR_SIZE)
+        background_shield = pygame.transform.smoothscale(pygame.image.load("info_box_shield.png"), SHIELD_SIZE)
         self.images = [background_image, filled_star_image, background_shield]
 
         #creating both buttons and storing the in list
-        panel_open_button = Button((x_pos + 45, y_pos), (x_pos + 350, y_pos + 45), self.change_state)
-        read_more_button = Button((159, 393), (318, 414), self.read_more)
+        panel_open_button = Button(
+            (x_pos + OPEN_BTN_OFFSET_TOPLEFT[0],
+             y_pos + OPEN_BTN_OFFSET_TOPLEFT[1]),
+            (x_pos + OPEN_BTN_OFFSET_BOTTOMRIGHT[0],
+             y_pos + OPEN_BTN_OFFSET_BOTTOMRIGHT[1]),
+            self.change_state
+        )
+
+        read_more_button = Button(
+            READ_MORE_TOPLEFT,
+            READ_MORE_BOTTOMRIGHT,
+            self.read_more
+        )
+
         self.buttons = [panel_open_button, read_more_button]
 
 
@@ -358,7 +379,18 @@ class VisualizerInfoBox(UIElement):
                                             workload_score, assessment_score, number_of_reviews, top_3_profs)
 
     def update_information(self, selected_course_code: str, course_title: str, course_description: str):
+        """
+        Update the information stored in the info box for the selected course.
 
+        This includes basic course details (code, title, description) and,
+        if the info box is enabled, additional computed stats loaded from
+        a local JSON file (e.g., ratings, review count, top professors).
+
+         Preconditions:
+            - selected_course_code is a course code present in course_data_computed.json
+            - "course_data_computed.json" exists and follows the expected structure
+        """
+        #Update info with all passed values
         self.course_info.course_code = selected_course_code
         self.course_info.course_title = course_title
         self.course_info.course_description = course_description
@@ -366,12 +398,13 @@ class VisualizerInfoBox(UIElement):
         if self.is_enabled:
             with open("course_data_computed.json", "r") as file:
                 data = json.load(file)
+            #grab all relevant stats from the JSON file
             course_quality = data[selected_course_code]["grouped_metrics"]["course_quality"]
             workload = data[selected_course_code]["grouped_metrics"]["workload"]
             assessment_quality = data[selected_course_code]["grouped_metrics"]["assessment_quality"]
             num_reviews = data[selected_course_code]["num_responses"]
             top_3_profs = data[selected_course_code]["profs_by_rating"][:3]
-
+            #update course_info data class
             self.course_info.quality_score = course_quality
             self.course_info.workload_score = workload
             self.course_info.assessment_score = assessment_quality
@@ -379,10 +412,16 @@ class VisualizerInfoBox(UIElement):
             self.course_info.top_3_profs = top_3_profs
 
     def handle_interaction(self, ui_event: pygame.event.Event):
+        """
+        Delegate interaction handling to all buttons in the info box.
+        """
         for button in self.buttons:
             button.handle_interaction(ui_event)
 
     def change_state(self):
+        """
+       Toggle the open/closed state of the info box.
+       """
         if self.is_enabled:
             if self.is_open:
                 self.is_open = False
@@ -390,83 +429,181 @@ class VisualizerInfoBox(UIElement):
                 self.is_open = True
 
     def read_more(self):
+        """
+        Open the course webpage in a browser if the info box is active and open.
+
+        Preconditions:
+        - self.course_info.course_code is a valid course code
+        - link_of_course.course_link_generate returns a valid URL
+        """
         if self.is_enabled and self.is_open:
             webbrowser.open(link_of_course.course_link_generate(self.course_info.course_code))
 
     def update_visually(self, ui_screen):
+        """
+        Display the info box UI onto the given screen.
+        Displays either the open or collapsed state.
+        """
+        # image index
+        PANEL_IMG = 0
+        SHIELD_IMG = 2
+        # button index
+        OPEN_BUTTON_INDEX = 0
+        # layout offsets
+        OPEN_SHIELD_Y_OFFSET = -20
+        OPEN_BUTTON_OFFSET = (45, 0)
+        CLOSED_SHIELD_Y_OFFSET = 800
+        CLOSED_PANEL_Y_OFFSET = 700
+        CLOSED_BUTTON_OFFSET = (45, 700)
+
         if self.is_enabled and self.is_open:
+            # Open state, fully visible info panel
 
-            ui_screen.blit(self.images[2], (self.x_pos, self.y_pos - 20))
-            ui_screen.blit(self.images[0], (self.x_pos, self.y_pos))
-            self.buttons[0].bounds.rect.topleft = (self.x_pos + 45, self.y_pos)
+            # Draw background and panel
+            # Draw shield (slightly above panel) NOTE: shield is what blurs the background
+            ui_screen.blit(self.images[SHIELD_IMG], (self.x_pos, self.y_pos + OPEN_SHIELD_Y_OFFSET))
+            ui_screen.blit(self.images[PANEL_IMG], (self.x_pos, self.y_pos))
+            # Update toggle button position relative to panel
+            self.buttons[OPEN_BUTTON_INDEX].bounds.rect.topleft = (self.x_pos + OPEN_BUTTON_OFFSET[0], self.y_pos + OPEN_BUTTON_OFFSET[1])
 
+            # Draw all UI sections
             self._display_course_title_description(ui_screen)
             self._display_stars(ui_screen)
             self._display_prof_ranking(ui_screen)
             self._display_review_number(ui_screen)
 
         elif self.is_enabled and not self.is_open:
-            ui_screen.blit(self.images[2], (self.x_pos, self.y_pos + 800))
-            ui_screen.blit(self.images[0], (self.x_pos, self.y_pos + 700))
-            self.buttons[0].bounds.rect.topleft = (self.x_pos + 45, self.y_pos + 700)
+            # Closed state, collapsed panel
+            # Draw background and panel but further down since its collapsed
+            ui_screen.blit(self.images[SHIELD_IMG], (self.x_pos, self.y_pos + CLOSED_SHIELD_Y_OFFSET))
+            ui_screen.blit(self.images[PANEL_IMG], (self.x_pos, self.y_pos + CLOSED_PANEL_Y_OFFSET ))
+            # Reposition button for collapsed view
+            self.buttons[0].bounds.rect.topleft = (self.x_pos + CLOSED_BUTTON_OFFSET[0], self.y_pos + CLOSED_BUTTON_OFFSET[1])
 
     def _display_course_title_description(self, ui_screen: pygame.Surface):
-        font_text = pygame.font.Font("RobotoMono-VariableFont_wght.ttf", 12)
-        font_heading = pygame.font.Font("FjallaOne-Regular.ttf", 25)
-        # visual elements of being open:
-        # heading
-        heading_x = self.x_pos + 40
-        heading_y = self.y_pos + 60
+        """
+        Private helper to display the course title and description text.
+        """
+        BODY_FONT_SIZE = 12
+        HEADING_FONT_SIZE = 25
+        #text layout offsets
+        HEADING_OFFSET = (40, 60)
+        DESCRIPTION_OFFSET = (40, 140)
+        font_text = pygame.font.Font("RobotoMono-VariableFont_wght.ttf", BODY_FONT_SIZE)
+        font_heading = pygame.font.Font("FjallaOne-Regular.ttf", HEADING_FONT_SIZE)
+
+        # Draw course title (heading)
+        heading_x = self.x_pos + HEADING_OFFSET[0]
+        heading_y = self.y_pos + HEADING_OFFSET[1]
         display_multiline_text("Heading", self.course_info.course_title, (heading_x, heading_y), font_heading,
                                ui_screen, None)
-        # body text
-        text_x = self.x_pos + 40
-        text_y = self.y_pos + 140
+
+        # Draw course description (body text)
+        text_x = self.x_pos + DESCRIPTION_OFFSET[0]
+        text_y = self.y_pos + DESCRIPTION_OFFSET[1]
         display_multiline_text("Body", self.course_info.course_description, (text_x, text_y), font_text, ui_screen,
                                None)
+
     def _display_stars(self, ui_screen: pygame.Surface):
-        _score_visualizer(round(self.course_info.quality_score), 449, self.images[1], ui_screen)
-        _score_visualizer(round(self.course_info.workload_score), 513, self.images[1], ui_screen)
-        _score_visualizer(round(self.course_info.assessment_score), 588, self.images[1], ui_screen)
+        """
+        Private helper to display rating stars for course quality, workload, and assessment
+        """
+        # Image indices
+        STAR_IMG = 1
+
+        # Star layout (y positions - based on screen)
+        QUALITY_STAR_Y = 449
+        WORKLOAD_STAR_Y = 513
+        ASSESSMENT_STAR_Y = 588
+
+        _score_visualizer(round(self.course_info.quality_score), QUALITY_STAR_Y, self.images[STAR_IMG], ui_screen)
+        _score_visualizer(round(self.course_info.workload_score), WORKLOAD_STAR_Y, self.images[STAR_IMG], ui_screen)
+        _score_visualizer(round(self.course_info.assessment_score), ASSESSMENT_STAR_Y, self.images[STAR_IMG], ui_screen)
 
     def _display_prof_ranking(self, ui_screen: pygame.Surface):
-        font_text_styled = pygame.font.Font("FjallaOne-Regular.ttf", 12)
+        """
+        Private helper to display the top 3 professors for the course
+        """
+        PROF_X_POS = 275
+        PROF_Y_START = 652
+        PROF_Y_SPACING = 18
+        PROF_NAME_MAX_LENGTH = 30
+        PROF_NAME_COLOR = (35, 68, 119)
+        PROF_FONT_SIZE = 12
+
+        font_text_styled = pygame.font.Font("FjallaOne-Regular.ttf", PROF_FONT_SIZE)
+        # Render each professor name with formatting
         for i in range(len(self.course_info.top_3_profs)):
-            name = trim_name(self.course_info.top_3_profs[i], 30)
-            text_surface = font_text_styled.render(name, True, (35, 68, 119))
-            ui_screen.blit(text_surface, (275, 652 + i * 18))
+            name = trim_name(self.course_info.top_3_profs[i], PROF_NAME_MAX_LENGTH)
+            text_surface = font_text_styled.render(name, True, PROF_NAME_COLOR)
+            ui_screen.blit(text_surface, (PROF_X_POS, PROF_Y_START + i * PROF_Y_SPACING))
 
     def _display_review_number(self, ui_screen: pygame.Surface):
-        font_text = pygame.font.Font("RobotoMono-VariableFont_wght.ttf", 12)
-        # num_reviews
-        reviews_border_rect = pygame.Rect(171, 726, 307 - 171, 733 - 726)
-        text_surface = font_text.render(str(self.course_info.number_of_reviews) + " reviews", True, (0, 0, 0))
+        """
+        Display the number of course reviews
+        """
+        REVIEWS_FONT_SIZE = 12
+        REVIEWS_BORDER_X1 = 171
+        REVIEWS_BORDER_Y1 = 726
+        REVIEWS_BORDER_X2 = 307
+        REVIEWS_BORDER_Y2 = 733
+        REVIEWS_COLOR = (0, 0, 0)
+
+        font_text = pygame.font.Font("RobotoMono-VariableFont_wght.ttf", REVIEWS_FONT_SIZE)
+        # Define bounding box for centering text
+        reviews_border_rect = pygame.Rect(REVIEWS_BORDER_X1, REVIEWS_BORDER_Y1,
+                                          REVIEWS_BORDER_X2 - REVIEWS_BORDER_X1, REVIEWS_BORDER_Y2 - REVIEWS_BORDER_Y1)
+        # Display review count text
+        text_surface = font_text.render(str(self.course_info.number_of_reviews) + " reviews", True, REVIEWS_COLOR)
         text_rect = text_surface.get_rect(center=reviews_border_rect.center)
         ui_screen.blit(text_surface, text_rect)
 
     def get_course_title(self) -> str:
+        """
+        Return the currently selected course title.
+        """
         return self.course_info.course_title
 
 
 class TextDisplayer(UIElement):
+    """
+    A UI element that displays multiline text at a fixed position on the screen.
+
+    Instance Attributes:
+    - display_text: The text to display on the screen.
+    - x_pos: The x-coordinate of the top left corner of the text.
+    - y_pos: The y-coordinate of the top left corner of the text.
+    - color: The RGB color of the text. Defaults to black (0, 0, 0).
+
+    Representation Invariants:
+    - self.x_pos and self.y_pos are non-negative integers representing pixel positions
+    """
+
     display_text: str
     x_pos: int
     y_pos: int
     color: Optional[tuple[int, int, int]]
 
     def __init__(self, display_text: str, x_pos: int, y_pos: int, color: Optional[tuple[int, int, int]] = None):
+        """
+        Initialize a TextDisplayer.
+        """
         self.display_text = display_text
         self.x_pos = x_pos
         self.y_pos = y_pos
 
         if color is None:
-            # set color to black
+            # set color to black as default if no colour is specified
             self.color = (0, 0, 0)
         else:
             self.color = color
 
     def update_visually(self, ui_screen: pygame.Surface) -> None:
-        font = pygame.font.Font("FjallaOne-Regular.ttf", 25)
+        """
+        Display the text onto the screen
+        """
+        FONT_SIZE = 25
+        font = pygame.font.Font("FjallaOne-Regular.ttf", FONT_SIZE)
         display_multiline_text(
             "Body",
             self.display_text,
@@ -477,17 +614,28 @@ class TextDisplayer(UIElement):
         )
 
     def handle_interaction(self, ui_event: pygame.event.Event) -> None:
+        """
+        This method exists because TextDisplayer as a UIElement is part of a UIManager, and the manager
+        iterates over all its elements and calls `handle_interaction` on each.
+        For TextDisplayer, no interaction handling is needed by default, so this method is
+        intentionally left empty to allow the UIManager to skip it without errors.
+        """
         return
 
 
 
 
 def _score_visualizer(score: int, y_pos: int, star_image, ui_screen) -> None:
-    #precondition:
-        #-  score <= 5 and score >= 0
-    if score <= 5:
-        for i in range(score):
-            ui_screen.blit(star_image, (261 + 36 * i, y_pos))
+    """
+    Display a horizontal row of star images representing score.
+
+    Preconditions:
+     - self.score <= 5 and self.score >= 0
+    """
+    STAR_START_X = 261
+    STAR_SPACING = 36
+    for i in range(score):
+        ui_screen.blit(star_image, (STAR_START_X + STAR_SPACING * i, y_pos))
 
 
 
