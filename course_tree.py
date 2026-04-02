@@ -47,7 +47,6 @@ class CourseTree:
         self._required_grade = grade
         self._subtrees = subtrees
 
-
     def is_leaf(self) -> bool:
         """Return whether the tree is a leaf"""
         return self._subtrees == []
@@ -91,7 +90,7 @@ class CourseTree:
             - is_course_code(course_code)"""
         # Check if this is the top call and not a recursive call
         if course_code:
-            # If there are no prerequisites, return an empty tree  # TODO: not an empty tree :)
+            # If there are no prerequisites, return a tree with empty subtrees
             if prerequisites == '':
                 return CourseTree(course_code, -1, [])
             # Otherwise, return a course tree generated based on the provided prerequisites string
@@ -218,7 +217,7 @@ class CourseTree:
                 tree_copy._remove_empty_subtrees()
                 return tree_copy
 
-    def is_prerequisite(self, course: str) -> bool:  #TODO:
+    def is_prerequisite(self, course: str) -> bool:
         """Return whether the provided course is a direct prerequisite for the course at this tree's root
         """
         for subtree in self._subtrees:
