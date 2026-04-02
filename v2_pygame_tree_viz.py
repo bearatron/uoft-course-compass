@@ -2,7 +2,7 @@
 # Tree class
 from __future__ import annotations
 
-from operator import add
+from operator import add, sub
 from typing import Callable
 import textwrap
 import webbrowser
@@ -11,7 +11,7 @@ import json
 from pygame.examples.scroll import zoom_factor
 
 from optimal_path_to_course import optimal_path_to_course
-from post_req_tree import PostrequisiteTreeLoader
+from post_req_tree import PostrequisiteTreeLoader, course_difference_tree
 
 from academic_calendar_reader import PrerequisiteTreeLoader, CourseNotFoundError
 from dataclasses import dataclass
@@ -251,6 +251,9 @@ class MainScreenUI(UIManager):
     course_tree_generate_button: Button
     course_tree_simplify_checkbox: Checkbox
 
+    course_difference_search_field: TextField
+    course_difference_generate_button: Button
+
     # Private instance attributes:
     #   - _tree_ui_element: a Tree UI element storing the tree to be displayed
     #   - _background_surface: a pygame Surface object for the main screen background
@@ -290,6 +293,9 @@ class MainScreenUI(UIManager):
         # TODO: remove once handle_event is implemented based on panel_output mode
         self.ui_components.append(self.visualizer_search_field)
 
+        #####################################
+        # Summer Offerings related elements #
+        #####################################
         # create summer offerings button
         self.summer_offering_button = Button(
             (272, 575),
@@ -299,6 +305,27 @@ class MainScreenUI(UIManager):
         # append to ui_components list for handle_event to work properly
         # TODO: remove once handle_event is implemented based on panel_output mode
         self.ui_components.append(self.summer_offering_button)
+
+        ###########################################
+        # Course Difference Tree related elements #
+        ###########################################
+        self.course_difference_search_field = TextField(
+            "Course to compare to",
+            18,
+            (260, 690),
+            (430, 717)
+        )
+        self.ui_components.append(self.course_difference_search_field)
+
+        self.course_difference_generate_button = Button(
+            (272, 725),
+            (424, 747),
+            lambda: generate_course_difference_tree(
+                self.visualizer_search_field.input_text,
+                self.course_difference_search_field.input_text
+            )
+        )
+        self.ui_components.append(self.course_difference_generate_button)
 
         ################################
         # Course Tree related elements #
@@ -314,7 +341,10 @@ class MainScreenUI(UIManager):
         self.ui_components.append(self.course_tree_slider)
 
         # construct the tree ui element from a TreeCamera and CourseTree
-        self.tree_camera = TreeCamera(self.info_box)
+        top_left_coord = (480, 30)
+        bottom_right_coord = (1400, 750)
+        self.tree_camera = TreeCamera(self.info_box, top_left_coord, bottom_right_coord)
+
         self.course_tree = CourseTree(None, -1, [])  # set course_tree to an empty tree as the default value
         self._tree_ui_element = Tree(self.tree_camera, self.course_tree)
 
@@ -339,9 +369,9 @@ class MainScreenUI(UIManager):
         )
         self.ui_components.append(self.course_tree_generate_button)
 
-        ####################################
-        # Course Spectrum related elements #
-        ####################################
+        #################################
+        # Optimal path related elements #
+        #################################
 
         # x boundaries of the course spectrum slider
         left_x = 45
@@ -424,12 +454,19 @@ class MainScreenUI(UIManager):
         self.course_tree_simplify_checkbox.update_visually(ui_screen)
         # self.course_tree_simplify_checkbox.show_outline_for_debugging(ui_screen)
 
+        self.course_difference_search_field.update_visually(ui_screen)
+        self.course_difference_search_field.show_outline_for_debugging(ui_screen)
+
+        self.course_difference_generate_button.update_visually(ui_screen)
+        self.course_difference_generate_button.show_outline_for_debugging(ui_screen)
+
         self.optimal_path_slider.update_visually(ui_screen)
         self.optimal_path_slider.show_outline_for_debugging(ui_screen)
 
         # draw the info panel last, as it should be displayed on top of everything
         if self.panel_output_mode == MainScreenUI.TREE_OUTPUT:
             self.info_box.update_visually(ui_screen)  # TODO: THIRD BUG FIX
+            self._tree_ui_element.show_outline_for_debugging(ui_screen)
 
 
 class CourseManager:
@@ -951,6 +988,45 @@ def generate_course_tree(course_code: str, tree_type: int, simplified: bool) -> 
         main_screen_ui.panel_output_mode = MainScreenUI.TREE_OUTPUT
 
 
+def generate_course_difference_tree(original_course: str, course_to_compare: str) -> None:
+    """
+    Display a course difference tree, showing the difference between the original course and the course to compare
+    """
+
+    try:
+        tree1 = loader.get_postrequisite_tree(original_course)
+    except CourseNotFoundError:
+        # handle errors by setting the error display text
+        if original_course == "":
+            main_screen_ui.error_displayer.display_text = "Please enter a non-empty course code"
+        else:
+            main_screen_ui.error_displayer.display_text = \
+                f"The course '{original_course}' is invalid or doesn't exist"
+
+        # change panel output mode to error output
+        main_screen_ui.panel_output_mode = MainScreenUI.ERROR_OUTPUT
+        return
+
+    try:
+        tree2 = loader.get_postrequisite_tree(course_to_compare)
+    except CourseNotFoundError:
+        # handle errors by setting the error display text
+        if original_course == "":
+            main_screen_ui.error_displayer.display_text = "Please enter a non-empty course code to compare to"
+        else:
+            main_screen_ui.error_displayer.display_text = \
+                f"The course '{original_course}' you are trying to compare with is invalid or doesn't exist"
+
+        # change panel output mode to error output
+        main_screen_ui.panel_output_mode = MainScreenUI.ERROR_OUTPUT
+        return
+
+    resulting_dict = course_difference_tree(tree1, tree2)
+
+    # set panel output mode to tree output
+    main_screen_ui.tree_camera.reset_camera()
+    main_screen_ui.panel_output_mode = MainScreenUI.TREE_OUTPUT
+
 def ui_dev_mode(ui_screen, ui_event):
     # TODO:delete this before final submission
     pygame.mouse.set_visible(False)
@@ -998,6 +1074,18 @@ class Tree(UIElement):
     """
     The UI element for tree
     """
+    # Static Variables (constants for tree layout):
+    #   - NODE_WIDTH: node's width
+    #   - NODE_HEIGHT: node's height
+    #   - VERTICAL_SPACING: vertical space between each node
+    #   - LINE_THICKNESS: thickness of the line connecting two nodes
+    #   - LINE_COLOR: color of the lines connecting two nodes
+    NODE_WIDTH = 200
+    NODE_HEIGHT = 50
+    VERTICAL_SPACING = 150
+    LINE_THICKNESS = 4
+    LINE_COLOR = (0, 0, 0)
+
     tree_camera: TreeCamera
     course_tree: CourseTree
 
@@ -1049,21 +1137,14 @@ class Tree(UIElement):
                 # Place child node in center of its allocated space
                 child_x = start_x_pos + subtree_width // 2
 
-                # Constants for tree layout
-                NODE_WIDTH = 200
-                NODE_HEIGHT = 50
-                VERTICAL_SPACING = 150
-                LINE_THICKNESS = 4
-                LINE_COLOR = (0, 0, 0)
-
                 # Draw line from parent to child
                 pygame.draw.line(
-                    target_screen, LINE_COLOR,
-                    (x_pos + int(NODE_WIDTH / 2 * tree_zoom_factor),
-                     y_pos + int(NODE_HEIGHT * tree_zoom_factor)),
-                    (child_x + int(NODE_WIDTH / 2 * tree_zoom_factor),
-                     y_pos + int(VERTICAL_SPACING * tree_zoom_factor)),
-                    max(1, int(LINE_THICKNESS * tree_zoom_factor))
+                    target_screen, Tree.LINE_COLOR,
+                    (x_pos + int(Tree.NODE_WIDTH / 2 * tree_zoom_factor),
+                     y_pos + int(Tree.NODE_HEIGHT * tree_zoom_factor)),
+                    (child_x + int(Tree.NODE_WIDTH / 2 * tree_zoom_factor),
+                     y_pos + int(Tree.VERTICAL_SPACING * tree_zoom_factor)),
+                    max(1, int(Tree.LINE_THICKNESS * tree_zoom_factor))
                 )
 
                 self.draw_tree_visualization(subtree, (child_x, y_pos + int(VERTICAL_SPACING * tree_zoom_factor)),
@@ -1131,6 +1212,10 @@ class Tree(UIElement):
             for subtree in tree.get_subtrees():
                 width_so_far += self.tree_width(subtree)
             return width_so_far
+
+    def show_outline_for_debugging(self, ui_screen: pygame.Surface) -> None:
+        self.tree_camera.show_outline_for_debugging(ui_screen)
+
 #TODO: as prof, python ta, root file, monster class
 class TreeCamera:
     """
@@ -1153,25 +1238,41 @@ class TreeCamera:
         - code_clicked: the course code of the node currently being clicked
         - initial_mouse_down_pos: the mouse position when the click began
         - course_info_box: the info box UI element associated with the tree
+        - rect: the bounding box where zooming and dragging works
 
     Representation Invariants:
         - self.zoom_factor > 0
         - self.x_pos_tree >= 0
         - self.y_pos_tree >= 0
      """
+    top_left_coord: tuple[int, int]
+    bottom_right_coord: tuple[int, int]
     x_pos_tree: int
     y_pos_tree: int
     dragging: bool
     zoom_factor: int
-    previous_mouse_pos: tuple[int,int] | None
+    previous_mouse_pos: tuple[int, int] | None
     node_course_code_map: list[tuple[pygame.Rect, str]]
     code_clicked: str | None
     initial_mouse_down_pos: tuple[int, int] | None
     course_info_box: VisualizerInfoBox
+    rect: pygame.Rect
 
-    def __init__(self, course_info_box: VisualizerInfoBox) -> None:
-        self.x_pos_tree = 838
-        self.y_pos_tree = 100
+    def __init__(self,
+                 course_info_box: VisualizerInfoBox,
+                 top_left_coord: tuple[int, int],
+                 bottom_right_coord: tuple[int, int]) -> None:
+        """
+        Initializes an instance of TreeCamera
+
+        Preconditions
+            - top_left_coord is None == bottom_right_coord is None
+        """
+        width, height = tuple(map(sub, bottom_right_coord, top_left_coord))
+        self.rect = pygame.Rect(top_left_coord[0], top_left_coord[1], width, height)
+
+        self.x_pos_tree = top_left_coord[0] + (width // 2) - (Tree.NODE_WIDTH // 2)
+        self.y_pos_tree = top_left_coord[1] + 70
         self.dragging = False
         self.zoom_factor = 1
         self.previous_mouse_pos = None
@@ -1181,57 +1282,61 @@ class TreeCamera:
         self.course_info_box = course_info_box
 
     def handle_interaction(self, mouse_event: pygame.event.Event) -> None:
-        if mouse_event.type == pygame.MOUSEWHEEL:
-            if mouse_event.y > 0:
-                self.zoom_factor *= 1.1
-            elif mouse_event.y < 0:
-                self.zoom_factor *= 0.9
-            # TODO:is limit on zoom needed?
-            # screen_zoom_factor = max(0.3, min(screen_zoom_factor, 3))
-        # the start of mouse drag based tree movement
-        if mouse_event.type == pygame.MOUSEBUTTONDOWN and mouse_event.button == 1:
-            self.dragging = True
-            mouse_position = pygame.mouse.get_pos()
-            self.previous_mouse_pos = mouse_position
-            self.initial_mouse_down_pos = mouse_position
+        """
+        Handle zooming and dragging of the tree in its bounding rectangle
+        """
+        if self.rect.collidepoint(pygame.mouse.get_pos()):
+            if mouse_event.type == pygame.MOUSEWHEEL:
+                if mouse_event.y > 0:
+                    self.zoom_factor *= 1.1
+                elif mouse_event.y < 0:
+                    self.zoom_factor *= 0.9
+                # TODO:is limit on zoom needed?
+                # screen_zoom_factor = max(0.3, min(screen_zoom_factor, 3))
+            # the start of mouse drag based tree movement
+            if mouse_event.type == pygame.MOUSEBUTTONDOWN and mouse_event.button == 1:
+                self.dragging = True
+                mouse_position = pygame.mouse.get_pos()
+                self.previous_mouse_pos = mouse_position
+                self.initial_mouse_down_pos = mouse_position
 
-            # check if a node is being clicked on:
-            for item in self.node_course_code_map:
-                node = item[0]
-                node_course_code = item[1]
-                if node.collidepoint(mouse_event.pos):
-                    self.code_clicked = node_course_code
-        # the actual mouse dragging movement
-        if mouse_event.type == pygame.MOUSEMOTION and self.dragging:
-            current_mouse_pos = pygame.mouse.get_pos()
-            displacement_x = current_mouse_pos[0] - self.previous_mouse_pos[0]
-            displacement_y = current_mouse_pos[1] - self.previous_mouse_pos[1]
-
-            # zoom-aware movement
-            self.x_pos_tree += displacement_x
-            self.y_pos_tree += displacement_y
-
-            self.previous_mouse_pos = current_mouse_pos
-        # the end of mouse drag based tree movement
-        if mouse_event.type == pygame.MOUSEBUTTONUP:
-            if mouse_event.button == 1:
-                self.dragging = False
+                # check if a node is being clicked on:
+                for item in self.node_course_code_map:
+                    node = item[0]
+                    node_course_code = item[1]
+                    if node.collidepoint(mouse_event.pos):
+                        self.code_clicked = node_course_code
+            # the actual mouse dragging movement
+            if mouse_event.type == pygame.MOUSEMOTION and self.dragging:
                 current_mouse_pos = pygame.mouse.get_pos()
-                if self.code_clicked is not None:
-                    displacement_x = current_mouse_pos[0] - self.initial_mouse_down_pos[0]
-                    displacement_y = current_mouse_pos[1] - self.initial_mouse_down_pos[1]
+                displacement_x = current_mouse_pos[0] - self.previous_mouse_pos[0]
+                displacement_y = current_mouse_pos[1] - self.previous_mouse_pos[1]
 
-                    if displacement_x < 2 and displacement_y < 2:
-                        print(self.code_clicked)
-                        self.course_info_box.is_enabled = True
-                        self.update_info_box()
-                    self.code_clicked = None
-                # if x_pos is on the white space, and its clicking ourside a course, info pannel closes
-                elif current_mouse_pos[0] >= 475:
-                    self.course_info_box.is_enabled = False
+                # zoom-aware movement
+                self.x_pos_tree += displacement_x
+                self.y_pos_tree += displacement_y
+
+                self.previous_mouse_pos = current_mouse_pos
+            # the end of mouse drag based tree movement
+            if mouse_event.type == pygame.MOUSEBUTTONUP:
+                if mouse_event.button == 1:
+                    self.dragging = False
+                    current_mouse_pos = pygame.mouse.get_pos()
+                    if self.code_clicked is not None:
+                        displacement_x = current_mouse_pos[0] - self.initial_mouse_down_pos[0]
+                        displacement_y = current_mouse_pos[1] - self.initial_mouse_down_pos[1]
+
+                        if displacement_x < 2 and displacement_y < 2:
+                            print(self.code_clicked)
+                            self.course_info_box.is_enabled = True
+                            self.update_info_box()
+                        self.code_clicked = None
+                    # if x_pos is on the white space, and its clicking ourside a course, info panel closes
+                    elif current_mouse_pos[0] >= 475:
+                        self.course_info_box.is_enabled = False
 
     def reset_camera(self):
-        self.__init__(self.course_info_box)
+        self.__init__(self.course_info_box, self.rect.topleft, self.rect.bottomright)
 
     def update_info_box(self) -> None:
         selected_course_code = self.code_clicked
@@ -1253,6 +1358,9 @@ class TreeCamera:
         self.course_info_box.update_information(selected_course_code, course_title, description, course_quality_score,
                                                 assessment_score, workload_score, number_of_reviews)
 
+    def show_outline_for_debugging(self, ui_screen: pygame.Surface) -> None:
+        color = (255, 0, 255)
+        pygame.draw.rect(ui_screen, color, self.rect, 2)
 
 if __name__ == '__main__':
 

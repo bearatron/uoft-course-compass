@@ -89,14 +89,22 @@ def all_items_in_tree(tree: CourseTree) -> set:
         return result
 
 
-def course_difference_tree(tree1: CourseTree, tree2: CourseTree):
-    """Return two sets: courses in tree1 but not tree2, and courses in tree2 but not tree1"""
+def course_difference_tree(tree1: CourseTree, tree2: CourseTree) -> dict[str, set]:
+    """
+    Return a mapping that stores:
+        - courses in both tree1 and tree2
+        - courses in tree1 but not tree2
+        - courses in tree2 but not tree1
+    """
     courses1 = all_items_in_tree(tree1)  # saves all courses in tree1 as a set
     courses2 = all_items_in_tree(tree2)  # saves all courses in tree2 as a set
     # find and save the courses that are exclusive to tree1 and tree2, saved them respectively
     courses_exclusive_tree1, courses_exclusive_tree2 = courses1 - courses2, courses2 - courses1
-    return {"course for both": courses1 | courses2, f"course exclusive for {tree1.get_root()}" : courses_exclusive_tree1,
-            f"course exclusive for {tree2.get_root()}": courses_exclusive_tree2}
+    return {
+        "course for both": courses1 | courses2,
+        f"course exclusive for {tree1.get_root()}": courses_exclusive_tree1,
+        f"course exclusive for {tree2.get_root()}": courses_exclusive_tree2
+    }
 
 
 # def get_direct_postrequisites(course_code: str, save_file: str) -> CourseTree:
