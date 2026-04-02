@@ -1,6 +1,9 @@
-"""Docstring  # TODO: insert docstring
+"""
+Pygame UI framework and interactive course visualization.
 
-This file is Copyright (c) 2026 Shayan Bhatti, Jacob Chislett, Ethan Diep, Shuhan Yuan
+This module provides standard UI components (`Button`, `TextField`, `VisualizerInfoBox`)
+to handle Pygame rendering and events. It also features `Tree` and `TreeController`
+classes for dynamically visualizing and navigating hierarchical academic course networks.
 """
 
 from __future__ import annotations
