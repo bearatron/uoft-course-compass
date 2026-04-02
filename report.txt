@@ -50,7 +50,7 @@ We used \verb|By|, \verb|webdriver|, and \verb|WebDriverWait| from \verb|Seleniu
 Next, we used \verb|parse_table| and \verb|_parse_page| to paginate through the results table row by row. Each row of the table was extracted and appended to a \verb|.csv| output file. \\
 
 Each record in the resulting CSV contains the following fields: Division, Department, Course name and code, Term, Year, five general evaluation items (rated 1–5), Instructor Enthusiasm, Course Workload, Recommend Course rating, Number of students invited, and Number of responses. Note that a sample of the scraped output is available in \verb|demo.csv|, which contains data from the first two pages of the evaluations table.
-\end{enumerate}
+
 
 
 
@@ -89,6 +89,7 @@ Within \verb|consolidate_rating.py|, the \verb|group_by_course_code| function ta
     Within the course\_evals\_parser.py there is a demo. It showcases the course evaluation scraper by automatically scraping the first two pages of UofT's course evaluations table and saving the results to \verb|demo.csv|\\
 To run the demo: run the \_main\_ block, A Chrome browser window will open automatically and navigate to UofT's course evaluations portal. The scraper will paginate through the first two pages of the table, printing each scraped row to the console. and then close the window automatically. (Note that this can only be ran on Chrome) \\ \\ \\ \\
 
+\end{enumerate}
 \textbf{Visual and Interactive Reporting}
 
 One of the main computations our program performs is recursively drawing a course tree of any size to the screen. The main visualization logic is implemented in the \verb|draw_tree_visualization| method in the Tree class and the python library \verb|pygame| was central to the implementation. The \verb|draw_tree_visualization| method recursively traverses the \verb|CourseTree| to determine the position of each node and its children. At each recursive step, the method calculates the total horizontal space required by all child nodes using the \verb|tree_width| method, which sums the widths of all subtrees at the current level. This total width is then used to determine the starting horizontal position (\verb|start_x_pos|) for the leftmost child so that the children are centered beneath the parent node. Each child subtree is allocated a horizontal space proportional to its width, and its center is positioned in the middle of that space. Before recursively drawing each child, the method draws a line connecting the parent node to the child node. This line is drawn from the bottom center of the parent rectangle to the top center of the child rectangle using \verb|pygame.draw.line|. The \verb|draw_node| method is responsible for rendering each individual node in detail. It creates a \verb|pygame.Rect| to represent the node.
@@ -101,7 +102,7 @@ Our project makes use of three new Python libraries: \verb|BeautifulSoup|, \verb
 \verb|BeautifulSoup| from the \verb|bs4| library was used to scrape the UofT Academic Calendar in \verb|academic_calendar_reader.py|. It was initialized with \verb|BeautifulSoup(webpage.text, features="html.parser")| to convert raw HTML retrieved by \verb|requests.get()| into a structured, searchable parse tree. Methods such as \verb|soup.find()| and \verb|soup.find_all()| were then used to locate specific HTML elements containing course codes, course names, descriptions, and prerequisite strings, with the \verb|.text| attribute used to extract the plain text content from those elements. \\
 
 \verb|Selenium| was used in \verb|course_evals_parser.py| to scrape the UofT course evaluations portal. A \verb|webdriver.Chrome()|  was used to create a Chrome browser and open it, and \verb|WebDriverWait| was used to later close the Chrome. WebElementHelper was used to check whether the website showed any signals to indicate whatever steps should be implemented (for example: checks input text field is in view) \\
-#TODO ETHAN " \\
+
 By library-what does it do exactly?"
 By using these libraries, we were able to parse through the course website and get the necessary data. After computing and cleaning the data, we got informations that are later showed to the user. For example: course rating, profs\_by\_rating, and historical\_offerings... \\
 
