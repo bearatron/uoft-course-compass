@@ -101,10 +101,21 @@ Our project makes use of three new Python libraries: \verb|BeautifulSoup|, \verb
 
 \verb|BeautifulSoup| from the \verb|bs4| library was used to scrape the UofT Academic Calendar in \verb|academic_calendar_reader.py|. It was initialized with \verb|BeautifulSoup(webpage.text, features="html.parser")| to convert raw HTML retrieved by \verb|requests.get()| into a structured, searchable parse tree. Methods such as \verb|soup.find()| and \verb|soup.find_all()| were then used to locate specific HTML elements containing course codes, course names, descriptions, and prerequisite strings, with the \verb|.text| attribute used to extract the plain text content from those elements. \\
 
-\verb|Selenium| was used in \verb|course_evals_parser.py| to scrape the UofT course evaluations portal. A \verb|webdriver.Chrome()|  was used to create a Chrome browser and open it, and \verb|WebDriverWait| was used to later close the Chrome. WebElementHelper was used to check whether the website showed any signals to indicate whatever steps should be implemented (for example: checks input text field is in view) \\
+\verb|Selenium| was used in \verb|course_evals_parser.py| to scrape the UofT course evaluations portal. A \verb|webdriver| was used to create an instance of the Chrome browser and open it. Below is a summary of the imported features.
 
-By library-what does it do exactly?"
-By using these libraries, we were able to parse through the course website and get the necessary data. After computing and cleaning the data, we got informations that are later showed to the user. For example: course rating, profs\_by\_rating, and historical\_offerings... \\
+\begin{itemize}
+    \item \texttt{WebDriverWait} provides a timeout feature. Since we need to check whether the HTML elements we are looking for are visible on screen, we must wait for some duration of time. \texttt{WebDriverWait} sets a max duration to wait before timing out and throwing an error.
+    \item \texttt{WebElement} is used to represent a DOM element, which can be interacted with (e.g. by clicking). Text can also be extracted from it. This is how we get the table data.
+    \item \texttt{By}: To select a specific DOM element, the Selenium \texttt{By} class is used. \texttt{By} allows us to specify our reference to the desired element.
+    \item \texttt{WebElement} represents a single HTML element on a web page. It provides methods to interact with DOM elements programmatically — including clicking, typing, reading attributes, and checking visibility or state. Elements are located via the driver's \texttt{find\_element()} method using a \texttt{By} locator strategy, such as \texttt{By.ID}, to target specific elements, and can then be acted upon directly through the returned \texttt{WebElement} object.
+    \item \texttt{expected\_conditions} was used in our custom \texttt{WebElementHelper} class made to compartmentalize the code required for finding a specified Selenium \texttt{WebElement} on the page. \texttt{expected\_conditions} provides two useful methods: \texttt{staleness\_of} and \texttt{visibility\_of\_element\_located}.
+    \begin{itemize}
+        \item \texttt{staleness\_of} is used to check whether a \texttt{WebElement} is stale. A \texttt{WebElement} refers to an HTML element on the DOM, so once it has been removed (like when the course evaluations table is removed and then added again during pagination before rendering), the reference is stale. \texttt{staleness\_of} allows us to check if a \texttt{WebElement} is stale to update it.
+            \item \texttt{visibility\_of\_element\_located} checks whether an element has been loaded onto the website and is in view.
+    \end{itemize}
+\end{itemize}
+
+By using these libraries, we were able to parse through the course website and get the necessary data. After computing and cleaning the data, we got information that is later showed to the user. For example: course rating, profs\_by\_rating, and historical\_offerings... \\
 
 
 \verb|pygame| was used to build the entire interactive visualization. Specifically, \verb|pygame.display.set_mode()| was used to initialize the application window, \verb|pygame.draw.rect()| and \verb|pygame.draw.line()| were used to render course nodes and the edges connecting them, and \verb|pygame.font.Font().render()| was used to draw course code labels onto each node. User input was handled through pygame's event system, detecting keyboard events for WASD navigation and mouse click events for selecting individual course nodes to view additional information.\\
