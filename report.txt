@@ -50,6 +50,7 @@ We used \verb|By|, \verb|webdriver|, and \verb|WebDriverWait| from \verb|Seleniu
 Next, we used \verb|parse_table| and \verb|_parse_page| to paginate through the results table row by row. Each row of the table was extracted and appended to a \verb|.csv| output file. \\
 
 Each record in the resulting CSV contains the following fields: Division, Department, Course name and code, Term, Year, five general evaluation items (rated 1–5), Instructor Enthusiasm, Course Workload, Recommend Course rating, Number of students invited, and Number of responses. Note that a sample of the scraped output is available in \verb|demo.csv|, which contains data from the first two pages of the evaluations table.
+After creating it as a csv, we used the column 3, 6, 8-16 of the csv data as they were the only ones we needed.
 
 
 
@@ -120,11 +121,63 @@ By using these libraries, we were able to parse through the course website and g
 
 \verb|pygame| was used to build the entire interactive visualization. Specifically, \verb|pygame.display.set_mode()| was used to initialize the application window, \verb|pygame.draw.rect()| and \verb|pygame.draw.line()| were used to render course nodes and the edges connecting them, and \verb|pygame.font.Font().render()| was used to draw course code labels onto each node. User input was handled through pygame's event system, detecting keyboard events for WASD navigation and mouse click events for selecting individual course nodes to view additional information.\\
 
-\textbf{Libraries used:}
-bs4,
-requests,
-webbrowser,
-pygame
+\subsection{Program Instructions}
+
+\textbf{Getting Started}
+\begin{itemize}
+    \item Open the \texttt{main.py} file and run the program.
+    \item The program will begin with a Start Screen. Press \textbf{ENTER} to proceed.
+\end{itemize}
+
+\textbf{Course Selection Screen} \\
+You are now in the Course Selection Screen. This is where you can save courses in the program.
+
+\textit{To add a course:}
+\begin{itemize}
+    \item Click on the \textbf{Course Code} field and enter the course code.
+    \item Click on the \textbf{Grade} field and enter the grade.
+    \item Click \textbf{Add Course} to save the course.
+\end{itemize}
+Any courses saved will allow the program to perform computations such as simplifying the course tree or calculating the optimal path. Now, you can press \textbf{ENTER} to go to the Main Screen for data visualizations.
+
+\textbf{Main Screen Controls}
+\begin{enumerate}
+    \item \textbf{Search for a Course}
+    \begin{itemize}
+        \item Use the \textbf{Search Course} bar at the top left to enter a course code or name.
+        \item This sets the course for all other features: Course Tree, Optimal Path, Course Comparison, and Summer Offering.
+    \end{itemize}
+
+    \item \textbf{Course Tree}
+    \begin{itemize}
+        \item Choose the type of tree: Prerequisite or Postrequisite.
+        \item You can also enable \textbf{Simplify Pre-req Tree} to display only courses you haven't completed.
+        \item Click \textbf{Generate} to visualize the course tree in the right panel.
+    \end{itemize}
+
+    \item \textbf{Optimal Path}
+    \begin{itemize}
+        \item Select one of the following optimization factors:
+        \begin{itemize}
+            \item \textbf{Overall Satisfaction:} Focus on courses with higher student satisfaction.
+            \item \textbf{Workload:} Minimize workload along the path.
+            \item \textbf{Cognitive Growth:} Focus on courses that maximize learning growth.
+        \end{itemize}
+        \item Click \textbf{Generate} to display the recommended path based on the courses you have taken.
+    \end{itemize}
+
+    \item \textbf{Summer Offering}
+    \begin{itemize}
+        \item Check if the selected course has historically been offered during the summer.
+        \item Click \textbf{Check} to display the result in the right panel.
+    \end{itemize}
+
+    \item \textbf{Course Difference}
+    \begin{itemize}
+        \item Enter a second course in the ``Course to Compare'' field.
+        \item Click \textbf{Generate} to display a chart between the two courses.
+    \end{itemize}
+\end{enumerate}
 
 
 \section{Changes to Our Project Plan:}
