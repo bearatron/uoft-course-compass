@@ -1,4 +1,8 @@
-"""Docstring  # TODO: insert docstring
+"""
+Course tree computation methods
+
+This module provides two useful methods. One finds all items in a tree, and
+the other finds the similarities and differences between the two trees.
 
 This file is Copyright (c) 2026 Shayan Bhatti, Jacob Chislett, Ethan Diep, Shuhan Yuan
 """

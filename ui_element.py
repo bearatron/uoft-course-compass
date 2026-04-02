@@ -171,7 +171,10 @@ class Button(UIElement):
     _is_pressed: bool
     on_click: Callable[[], None]
 
-    def __init__(self, top_left_cord: tuple[int,int], bottom_right_cord: tuple[int,int], on_click: Callable[[], None]) -> None:
+    def __init__(self,
+                 top_left_cord: tuple[int, int],
+                 bottom_right_cord: tuple[int, int],
+                 on_click: Callable[[], None]) -> None:
         """Initialize the Button"""
         self._is_pressed = False
         self.on_click = on_click
@@ -216,6 +219,7 @@ class Button(UIElement):
             color = (0, 255, 0)
 
         pygame.draw.rect(ui_screen, color, self.bounds.rect, 2)  # outline only
+
 
 class Checkbox(Button):
     """
@@ -262,6 +266,7 @@ class Checkbox(Button):
             surface = pygame.transform.smoothscale(img, (self.width, self.height))
             ui_screen.blit(surface, self.bounds.top_left_cord)
 
+
 @dataclass
 class _PanelCourseInfo:
     """
@@ -293,6 +298,7 @@ class _PanelCourseInfo:
     number_of_reviews: int
     top_3_profs: list[str]
 
+
 class VisualizerInfoBox(UIElement):
     """
     UI info box that displays detailed information about a selected course.
@@ -318,8 +324,10 @@ class VisualizerInfoBox(UIElement):
     images: list[pygame.Surface]
     buttons: list[Button]
 
-    def __init__(self, x_pos: int, y_pos: int):
+    def __init__(self, x_pos: int, y_pos: int) -> None:
         """Initialize the visualizer info box"""
+
+        # Initialize constants
         PANEL_SIZE = (453, 750)
         STAR_SIZE = (30, 30)
         SHIELD_SIZE = (455, 778)
@@ -334,18 +342,18 @@ class VisualizerInfoBox(UIElement):
         self.y_pos = y_pos
         self._initialize_course_info()
 
-        #Defualt settings for info box state
+        # Defualt settings for info box state
         self.is_enabled = False
         self.is_open = False
 
-        #loading all relevant images and storing in list
+        # loading all relevant images and storing in list
         background_image = pygame.transform.smoothscale(pygame.image.load("info_panel_cc_v3.png"), PANEL_SIZE)
         filled_star_image = pygame.transform.smoothscale(pygame.image.load(
             "ui_star_course_compass.png"), STAR_SIZE)
         background_shield = pygame.transform.smoothscale(pygame.image.load("info_box_shield.png"), SHIELD_SIZE)
         self.images = [background_image, filled_star_image, background_shield]
 
-        #creating both buttons and storing the in list
+        # creating both buttons and storing the in list
         panel_open_button = Button(
             (x_pos + OPEN_BTN_OFFSET_TOPLEFT[0],
              y_pos + OPEN_BTN_OFFSET_TOPLEFT[1]),
@@ -363,7 +371,7 @@ class VisualizerInfoBox(UIElement):
         self.buttons = [panel_open_button, read_more_button]
 
 
-    def _initialize_course_info(self):
+    def _initialize_course_info(self) -> None:
         """
         Private helper for setting up the default value for self.course_info
         """
@@ -380,7 +388,7 @@ class VisualizerInfoBox(UIElement):
                                             course_title, course_description, quality_score,
                                             workload_score, assessment_score, number_of_reviews, top_3_profs)
 
-    def update_information(self, selected_course_code: str, course_title: str, course_description: str):
+    def update_information(self, selected_course_code: str, course_title: str, course_description: str) -> None:
         """
         Update the information stored in the info box for the selected course.
 
@@ -392,7 +400,7 @@ class VisualizerInfoBox(UIElement):
             - selected_course_code is a course code present in course_data_computed.json
             - "course_data_computed.json" exists and follows the expected structure
         """
-        #Update info with all passed values
+        # Update info with all passed values
         self.course_info.course_code = selected_course_code
         self.course_info.course_title = course_title
         self.course_info.course_description = course_description
@@ -400,27 +408,27 @@ class VisualizerInfoBox(UIElement):
         if self.is_enabled:
             with open("course_data_computed.json", "r") as file:
                 data = json.load(file)
-            #grab all relevant stats from the JSON file
+            # grab all relevant stats from the JSON file
             course_quality = data[selected_course_code]["grouped_metrics"]["course_quality"]
             workload = data[selected_course_code]["grouped_metrics"]["workload"]
             assessment_quality = data[selected_course_code]["grouped_metrics"]["assessment_quality"]
             num_reviews = data[selected_course_code]["num_responses"]
             top_3_profs = data[selected_course_code]["profs_by_rating"][:3]
-            #update course_info data class
+            # update course_info data class
             self.course_info.quality_score = course_quality
             self.course_info.workload_score = workload
             self.course_info.assessment_score = assessment_quality
             self.course_info.number_of_reviews = num_reviews
             self.course_info.top_3_profs = top_3_profs
 
-    def handle_interaction(self, ui_event: pygame.event.Event):
+    def handle_interaction(self, ui_event: pygame.event.Event) -> None:
         """
         Delegate interaction handling to all buttons in the info box.
         """
         for button in self.buttons:
             button.handle_interaction(ui_event)
 
-    def change_state(self):
+    def change_state(self) -> None:
         """
        Toggle the open/closed state of the info box.
        """
@@ -430,7 +438,7 @@ class VisualizerInfoBox(UIElement):
             else:
                 self.is_open = True
 
-    def read_more(self):
+    def read_more(self) -> None:
         """
         Open the course webpage in a browser if the info box is active and open.
 
@@ -441,7 +449,7 @@ class VisualizerInfoBox(UIElement):
         if self.is_enabled and self.is_open:
             webbrowser.open(link_of_course.course_link_generate(self.course_info.course_code))
 
-    def update_visually(self, ui_screen):
+    def update_visually(self, ui_screen) -> None:
         """
         Display the info box UI onto the given screen.
         Displays either the open or collapsed state.
@@ -482,13 +490,13 @@ class VisualizerInfoBox(UIElement):
             # Reposition button for collapsed view
             self.buttons[0].bounds.rect.topleft = (self.x_pos + CLOSED_BUTTON_OFFSET[0], self.y_pos + CLOSED_BUTTON_OFFSET[1])
 
-    def _display_course_title_description(self, ui_screen: pygame.Surface):
+    def _display_course_title_description(self, ui_screen: pygame.Surface) -> None:
         """
         Private helper to display the course title and description text.
         """
         BODY_FONT_SIZE = 12
         HEADING_FONT_SIZE = 25
-        #text layout offsets
+        # text layout offsets
         HEADING_OFFSET = (40, 60)
         DESCRIPTION_OFFSET = (40, 140)
         font_text = pygame.font.Font("RobotoMono-VariableFont_wght.ttf", BODY_FONT_SIZE)
@@ -522,7 +530,7 @@ class VisualizerInfoBox(UIElement):
         _score_visualizer(round(self.course_info.workload_score), WORKLOAD_STAR_Y, self.images[STAR_IMG], ui_screen)
         _score_visualizer(round(self.course_info.assessment_score), ASSESSMENT_STAR_Y, self.images[STAR_IMG], ui_screen)
 
-    def _display_prof_ranking(self, ui_screen: pygame.Surface):
+    def _display_prof_ranking(self, ui_screen: pygame.Surface) -> None:
         """
         Private helper to display the top 3 professors for the course
         """
@@ -586,7 +594,7 @@ class TextDisplayer(UIElement):
     y_pos: int
     color: Optional[tuple[int, int, int]]
 
-    def __init__(self, display_text: str, x_pos: int, y_pos: int, color: Optional[tuple[int, int, int]] = None):
+    def __init__(self, display_text: str, x_pos: int, y_pos: int, color: Optional[tuple[int, int, int]] = None) -> None:
         """
         Initialize a TextDisplayer.
         """
@@ -625,8 +633,6 @@ class TextDisplayer(UIElement):
         return
 
 
-
-
 def _score_visualizer(score: int, y_pos: int, star_image, ui_screen) -> None:
     """
     Display a horizontal row of star images representing score.
@@ -638,7 +644,6 @@ def _score_visualizer(score: int, y_pos: int, star_image, ui_screen) -> None:
     STAR_SPACING = 36
     for i in range(score):
         ui_screen.blit(star_image, (STAR_START_X + STAR_SPACING * i, y_pos))
-
 
 
 class TreeController(UIElement):
@@ -711,8 +716,11 @@ class TreeController(UIElement):
         self.loader = loader
 
     def update_visually(self, ui_screen: pygame.Surface) -> None:
+        """
+        Empty because TreeController does not need to display anything
+        This method is required to be implemented as per UIElement abstract class
+        """
         return
-
 
     def handle_interaction(self, mouse_event: pygame.event.Event) -> None:
         """
@@ -764,18 +772,23 @@ class TreeController(UIElement):
                     elif current_mouse_pos[0] >= 475:
                         self.course_info_box.is_enabled = False
 
-    def reset_camera(self):
+    def reset_camera(self) -> None:
+        """
+        Reset the camera to the original position
+        """
         self.__init__(self.course_info_box, self.loader, self.rect.topleft, self.rect.bottomright)
 
     def update_info_box(self) -> None:
+        """
+        Update info box with the course title and description
+        """
         selected_course_code = self.code_clicked
         try:
             course_title, description = self.loader.get_name_and_description(self.code_clicked)
         except CourseNotFoundError:
             # Check if the info box is currently not displaying anything
             if self.course_info_box.get_course_title() == "":
-                # The info box is not displaying anything, so it shouldn't pop up (sorry you can rewrite these
-                # comments lol they're trash idk how your code works
+                # The info box is not displaying anything, so it shouldn't pop up
                 self.course_info_box.is_enabled = False
             return
         self.course_info_box.update_information(selected_course_code, course_title, description)
@@ -784,7 +797,16 @@ class TreeController(UIElement):
         color = (255, 0, 255)
         pygame.draw.rect(ui_screen, color, self.rect, 2)
 
+
 class CourseDifference(TreeController):
+    """
+    A class for displaying the Course Difference tree
+
+    It will be displayed as three columns. From left to right, the columns contain:
+        1. The postreq courses exclusive to course1_to_compare
+        2. The postreq courses shared by course1_to_compare and course2_to_compare
+        3. The postreq courses exclusive to course2_to_compare
+    """
     course1_to_compare: str
     course2_to_compare: str
     course1_exclusive: set[str]
@@ -792,9 +814,13 @@ class CourseDifference(TreeController):
     same_to_both: set[str]
     info_box: VisualizerInfoBox
 
-
     def __init__(self, course_info_box: VisualizerInfoBox, loader: PrerequisiteTreeLoader) -> None:
-        super().__init__(course_info_box, loader,(480, 30), (1400, 750))
+        """
+        Initialize an instance of CourseDifference tree
+        """
+        super().__init__(course_info_box, loader, (480, 30), (1400, 750))
+        # initially, set the following attributes to default values
+        # to display a course difference tree, access the below attributes and set them to their corresponding values
         self.course1_to_compare = ""
         self.course2_to_compare = ""
         self.course1_exclusive = set()
@@ -803,19 +829,30 @@ class CourseDifference(TreeController):
         self.info_box = course_info_box
 
     def reset_camera(self) -> None:
-        print(self.course1_exclusive)
-        print(self.same_to_both)
-        print(self.course2_exclusive)
+        """
+        Reset the positioning of the tree
+        """
         self.top_left_coord = (480, 30)
         self.bottom_right_coord = (1400, 750)
 
     def update_visually(self, ui_screen: pygame.Surface) -> None:
+        """
+        Draw the course differences to the screen
+        """
+        # clear previous nodes that have been drawn
         self.node_course_code_map.clear()
 
+        # spacing constants that scale as the user zooms
         HORIZONTAL_SPACING = int(400 * self.zoom_factor)
         VERTICAL_SPACING = int(150 * self.zoom_factor)
 
+        # title is displayed slightly closer to the course nodes
         TITLE_OFFSET_FACTOR = 50
+
+        # ############## Display the three columns ################### #
+        # display the first column showing postreq courses exclusive to course 1
+
+        # column heading text
         font_size = max(12, int(24 * self.zoom_factor))
         font = pygame.font.Font("FjallaOne-Regular.ttf", font_size)
         text = font.render(f"Courses Exclusive To {self.course1_to_compare}:", True, (35, 68, 119))
@@ -824,36 +861,41 @@ class CourseDifference(TreeController):
         for idx, course_code in enumerate(self.course1_exclusive):
             self.draw_node(
                 (course_code, ""),
-                (self.x_pos_tree - HORIZONTAL_SPACING, self.y_pos_tree + (idx+1) * VERTICAL_SPACING - TITLE_OFFSET_FACTOR),
+                (self.x_pos_tree - HORIZONTAL_SPACING,
+                 self.y_pos_tree + (idx+1) * VERTICAL_SPACING - TITLE_OFFSET_FACTOR),
                 self.zoom_factor,
                 [],
                 ui_screen
             )
 
+        # display the second column showing postreq courses shared by both course 1 and course 2
         text = font.render("Courses Mutual to Both:", True, (35, 68, 119))
         ui_screen.blit(text, (self.x_pos_tree, self.y_pos_tree))
         for idx, course_code in enumerate(self.same_to_both):
             self.draw_node(
                 (course_code, ""),
-                (self.x_pos_tree, self.y_pos_tree + (idx+1) * VERTICAL_SPACING - TITLE_OFFSET_FACTOR),
+                (self.x_pos_tree,
+                 self.y_pos_tree + (idx+1) * VERTICAL_SPACING - TITLE_OFFSET_FACTOR),
                 self.zoom_factor,
                 [],
                 ui_screen
             )
 
+        # display the third column showing postreq courses exclusive to course 2
         text = font.render(f"Courses Exclusive To {self.course2_to_compare}:", True, (35, 68, 119))
         ui_screen.blit(text, (self.x_pos_tree + HORIZONTAL_SPACING, self.y_pos_tree))
         for idx, course_code in enumerate(self.course2_exclusive):
             self.draw_node(
                 (course_code, ""),
-                (self.x_pos_tree + HORIZONTAL_SPACING, self.y_pos_tree + (idx+1) * VERTICAL_SPACING - TITLE_OFFSET_FACTOR),
+                (self.x_pos_tree + HORIZONTAL_SPACING,
+                 self.y_pos_tree + (idx+1) * VERTICAL_SPACING - TITLE_OFFSET_FACTOR),
                 self.zoom_factor,
                 [],
                 ui_screen
             )
 
-
     def handle_interaction(self, mouse_event: pygame.event.Event) -> None:
+        """Handle dragging and zooming; this is the same behavior as the default implementation in TreeController"""
         super().handle_interaction(mouse_event)
 
     def draw_node(self, display_vals: tuple[str, str], position: tuple[int, int], screen_zoom_factor: int,
@@ -907,7 +949,7 @@ class CourseDifference(TreeController):
 
 class Tree(UIElement):
     """
-    The UI element for tree
+    The UI element for Course Difference tree
     """
     # Static Variables (constants for tree layout):
     #   - NODE_WIDTH: node's width
@@ -922,9 +964,8 @@ class Tree(UIElement):
     LINE_COLOR = (0, 0, 0)
 
     # Instance attributes:
-    #   - tree_camera: a TreeCamera to be used to control the tree
+    #   - tree_camera: a TreeController to be used to control user interactions with the tree
     #   - course_tree: a CourseTree to be displayed
-
     tree_camera: TreeController
     course_tree: CourseTree
 

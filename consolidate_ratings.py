@@ -65,7 +65,6 @@ def group_by_course_code(filenames: list[str], output_filename: str) -> None:
                     # based on index of the element in the current row
                     entry = list(ENTRIES_TO_DATATYPE.keys())[i]
 
-                    # TODO: deal with N/A
                     if item == "N/A":
                         if ENTRIES_TO_DATATYPE[entry] == float:
                             data = 0.0
