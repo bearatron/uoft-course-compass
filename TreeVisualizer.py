@@ -19,7 +19,23 @@ from ui_element import TextField, Button
 
 @dataclass
 class _TreeVisualizerImages:
-    """docstring"""
+    """
+    A data class that stores all image assets used by the application.
+
+    Instance Attributes:
+        - start_page: Background image for the startup screen.
+        - course_selection_page: Background image for the course selection screen.
+        - course_spec_slider1: First course factor slider image.
+        - course_spec_slider2: Second course factor slider image.
+        - course_spec_slider3: Third course factor slider image.
+        - course_tree_type_slider_image: list of images used to toggle between prerequisite
+          and postrequisite tree modes.
+        - selection_check_mark: Check mark image used for selections.
+
+    Representation Invariants:
+        - len(self.course_tree_type_slider_image) == 2
+          The list contains exactly two images, one for each slider button state.
+    """
     start_page: pygame.Surface
     course_selection_page: pygame.Surface
     course_spec_slider1: pygame.Surface
@@ -28,66 +44,75 @@ class _TreeVisualizerImages:
     course_tree_type_slider_image: list[pygame.Surface]
     selection_check_mark: pygame.Surface
 
+@dataclass
+class _UIManagers:
+    """
+    Data class stores all UI managers used across screens.
 
-class TreeVisualizer:
-    """docstring"""
-    screen: pygame.Surface
-    font: pygame.font.Font
-    screen_mode: str
-    images: _TreeVisualizerImages
+    Instance Attributes:
+        - start_screen_ui: UI manager for the startup screen.
+        - course_selection_ui: UI manager for the course selection screen.
+        - main_screen_ui: UI manager for the main visualization screen.
+    """
     start_screen_ui: UIManager
+    course_selection_ui: UIManager
     main_screen_ui: MainScreenUI
+
+@dataclass
+class _UIElements:
+    """
+    Data class that stores ui elements used on screens before the main screen
+
+    Instance Attributes:
+        - taken_course_field: Text field used to enter a course code.
+        - grade_mark_field: Text field used to enter a course grade.
+        - add_course_button: Button used to add a course to the course list.
+    """
     taken_course_field: TextField
     grade_mark_field: TextField
     add_course_button: Button
-    course_selection_ui: UIManager
+
+class TreeVisualizer:
+    """
+    A class that manages the application and its app events.
+
+    Instance Attributes:
+        - screen: Main pygame display surface.
+        - font: Font used for rendering text.
+        - screen_mode: Current screen being displayed.
+        - course_manager: Stores user entered course and grade information.
+        - images: Stores all loaded image assets.
+        - ui_managers: Stores all UI managers.
+        - ui_elements: Stores all UI elements before main screen.
+
+    Representation Invariants:
+        - self.screen_mode in {"start_screen", "course_selection", "main"}
+    """
+    screen: pygame.Surface
+    font: pygame.font.Font
+    screen_mode: str
+    course_manager: CourseManager
+    images: _TreeVisualizerImages
+    ui_managers: _UIManagers
+    ui_elements: _UIElements
 
     def __init__(self):
-        # ---------------------------------------------------------------------
-        # LOAD CANVAS
-        # ---------------------------------------------------------------------
-        pygame.init()
-        screen_width = 1440
-        screen_height = 780
-        size = (screen_width, screen_height)
-        self.screen = pygame.display.set_mode(size)
-        self.font = pygame.font.Font("FjallaOne-Regular.ttf", 12)
-
-        # for window visual look
-        pygame.display.set_caption("U of T Course Compass")
-        icon = pygame.image.load("course_compass_logo.png")
-        pygame.display.set_icon(icon)
-
-        self.screen_mode = "start_screen"
-
+        """Initializes an instance of TreeVisualizer"""
+        self._initialize_pygame()
         self._initialize_images()
+        self._initialize_ui_components()
 
-        # ---------------------------------------------------------------------
-        # Variables
-        # ---------------------------------------------------------------------
-        self.start_screen_ui = UIManager()
+    def _initialize_images(self) -> None:  # TODO: make sure to add return types on ALLLLL your methods and functions
+        """Private helper that loads and scales all image assets used by the application."""
 
-        self.course_manager = CourseManager()  # TODO: this will come from the other screen
+        # Tuple represents size (Length x Width)
 
-        self.main_screen_ui = MainScreenUI(self.course_manager)
-
-        self.taken_course_field = TextField("Course Code", 20, (492, 208), (610, 230))
-        self.grade_mark_field = TextField("###", 20, (704, 203), (740, 237))
-        self.add_course_button = Button((801, 167), (971, 260),
-                                        lambda: self._add_course_to_list())
-        self.course_selection_ui = UIManager()
-        self.course_selection_ui.add(self.taken_course_field)
-        self.course_selection_ui.add(self.grade_mark_field)
-        self.course_selection_ui.add(self.add_course_button)
-
-    def _initialize_images(self):  # TODO: make sure to add return types on ALLLLL your methods and functions
-        """docstring"""
         start_page = pygame.image.load(
-            "course_compass_startup_screen_v2.png")
+            "course_compass_start_ui_screen.png")
         start_page = pygame.transform.smoothscale(start_page, (1440, 780))
 
         course_selection_page = pygame.image.load(
-            "course_compass_course_selection_v3.png")
+            "course_compass_course_selection_screen.png")
         course_selection_page = pygame.transform.smoothscale(course_selection_page, (1440, 780))
 
         course_spec_slider1 = pygame.image.load(
@@ -116,6 +141,7 @@ class TreeVisualizer:
             "check_mark.png")
         selection_check_mark = pygame.transform.smoothscale(selection_check_mark, (41, 33))
 
+        # Store all loaded images inside the tree visualizer images dataclass
         self.images = _TreeVisualizerImages(start_page,
                                             course_selection_page,
                                             course_spec_slider1,
@@ -124,66 +150,140 @@ class TreeVisualizer:
                                             course_tree_type_slider_image,
                                             selection_check_mark)
 
-    def _add_course_to_list(self):
-        """docstring"""
-        taken_course_code = self.taken_course_field.input_text
-        course_grade = int(self.grade_mark_field.input_text)
+    def _initialize_ui_components(self) -> None:
+        """Private helper that creates and organizes all UI managers and UI elements."""
+
+        # Text Field Constants
+        COURSE_CODE_PLACEHOLDER = "Course Code"
+        COURSE_CODE_FONT_SIZE = 20
+        COURSE_CODE_TOP_LEFT = (492, 208)
+        COURSE_CODE_BOTTOM_RIGHT = (610, 230)
+
+        GRADE_PLACEHOLDER = "###"
+        GRADE_FONT_SIZE = 20
+        GRADE_TOP_LEFT = (704, 203)
+        GRADE_BOTTOM_RIGHT = (740, 237)
+
+        # Button Constants
+        ADD_COURSE_BUTTON_TOP_LEFT = (801, 167)
+        ADD_COURSE_BUTTON_BOTTOM_RIGHT = (971, 260)
+
+        # Create ui managers
+        self.course_manager = CourseManager()
+
+        start_screen_ui = UIManager()
+        main_screen_ui = MainScreenUI(self.course_manager)
+        course_selection_ui = UIManager()
+
+        # Create ui elements
+        taken_course_field = TextField(
+            COURSE_CODE_PLACEHOLDER,
+            COURSE_CODE_FONT_SIZE,
+            COURSE_CODE_TOP_LEFT,
+            COURSE_CODE_BOTTOM_RIGHT
+        )
+
+        grade_mark_field = TextField(
+            GRADE_PLACEHOLDER,
+            GRADE_FONT_SIZE,
+            GRADE_TOP_LEFT,
+            GRADE_BOTTOM_RIGHT
+        )
+
+        add_course_button = Button(
+            ADD_COURSE_BUTTON_TOP_LEFT,
+            ADD_COURSE_BUTTON_BOTTOM_RIGHT,
+            lambda: self._add_course_to_list()
+        )
+
+        #Add ui elements to respective manager
+        course_selection_ui.add(taken_course_field)
+        course_selection_ui.add(grade_mark_field)
+        course_selection_ui.add(add_course_button)
+
+        #Store ui elements and manager to respective data classes
+        self.ui_elements = _UIElements(
+            taken_course_field,
+            grade_mark_field,
+            add_course_button
+        )
+
+        self.ui_managers = _UIManagers(
+            start_screen_ui,
+            course_selection_ui,
+            main_screen_ui
+        )
+
+    def _initialize_pygame(self) -> None:
+        """ Private helper that initialize pygame and configures the main application window."""
+        pygame.init()
+        #screen settings
+        screen_width = 1440
+        screen_height = 780
+        size = (screen_width, screen_height)
+        self.screen = pygame.display.set_mode(size)
+        self.font = pygame.font.Font("FjallaOne-Regular.ttf", 12)
+        # for visual look of app window
+        pygame.display.set_caption("U of T Course Compass")
+        icon = pygame.image.load("course_compass_logo.png")
+        pygame.display.set_icon(icon)
+        # set the screen the app starts on
+        self.screen_mode = "start_screen"
+
+    def _add_course_to_list(self) -> None:
+        """Add the entered course code and grade to the course manager."""
+        taken_course_code = self.ui_elements.taken_course_field.get_input_text()
+        course_grade = int(self.ui_elements.grade_mark_field.get_input_text())
 
         self.course_manager.add_course(taken_course_code, course_grade)
 
-    def run_simulation(self):
-        """docstring"""
-        # ---------------------------------------------------------------------
-        # MAIN LOOP
-        # ---------------------------------------------------------------------
+    def run_simulation(self) -> None:
+        """Run the main pygame event loop."""
         done = False
         while not done:
             for event in pygame.event.get():
-                # uncomment below for dev mode
                 if event.type == pygame.QUIT:
                     done = True
                 if event.type == pygame.KEYDOWN:
+                    #Everytime user clicks enter, the screen mode is changed
+                    # until app reaches main screen
                     if event.key == pygame.K_RETURN:
                         if self.screen_mode == "start_screen":
                             self.screen_mode = "course_selection"
                         else:
                             self.screen_mode = "main"
-                if self.screen_mode == "start_screen":
-                    self.start_screen_ui.handle_event(event)
-                elif self.screen_mode == "course_selection":
-                    self.course_selection_ui.handle_event(event)
-                elif self.screen_mode == "main":
-                    # main_screen_ui.tree_camera.handle_interaction(event) #TODO:redundent
-                    self.main_screen_ui.handle_event(event)
-                    # TEMPORARLY uses enter key to take input from search bar, eventually this will be a button
-                    # TODO: error check input
 
+                #Each ui manager for each respective screen handles pygame events
+                if self.screen_mode == "start_screen":
+                    self.ui_managers.start_screen_ui.handle_event(event)
+                elif self.screen_mode == "course_selection":
+                    self.ui_managers.course_selection_ui.handle_event(event)
+                elif self.screen_mode == "main":
+                    self.ui_managers.main_screen_ui.handle_event(event)
+            #Visually update in appearance the current screen
             if self.screen_mode == "start_screen":
                 self.screen.blit(self.images.start_page, (0, 0))
+
             elif self.screen_mode == "course_selection":
                 self.screen.blit(self.images.course_selection_page, (0, 0))
-                self.course_selection_ui.update_visually(self.screen)
-
+                self.ui_managers.course_selection_ui.update_visually(self.screen)
                 course_dict = self.course_manager.get_courses()
                 course_list = list(course_dict.items())
+                self._display_added_courses(course_list)
 
-                for i in range(len(course_list)):
-                    course, grade = course_list[i]
-
-                    text = self.font.render(f"{course}: {grade}", True, (35, 68, 119))
-
-                    if i < 19:
-                        x = 392
-                        y = 409 + i * 18
-                    else:
-                        x = 392 + 50
-                        y = 409 + (i - 19) * 18
-
-                    self.screen.blit(text, (x, y))
             elif self.screen_mode == "main":
                 self.screen.fill((255, 255, 255))
-
-                self.main_screen_ui.update_visually(self.screen)
+                self.ui_managers.main_screen_ui.update_visually(self.screen)
 
             pygame.display.flip()
         pygame.quit()
+
+    def _display_added_courses(self, course_list: list) -> None:
+        """Private helper that displays all entered courses and grades on the course selection screen."""
+        for i in range(len(course_list)):
+            course, grade = course_list[i]
+            text = self.font.render(f"{course}: {grade}", True, (35, 68, 119))
+            x = 392
+            y = 409 + i * 18
+            self.screen.blit(text, (x, y))
+

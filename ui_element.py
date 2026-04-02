@@ -13,10 +13,9 @@ import link_of_course
 from academic_calendar_reader import PrerequisiteTreeLoader, CourseNotFoundError
 from course_tree import CourseTree
 from operator import sub
-
+from dataclasses import dataclass
 from text_manipulation import display_multiline_text, trim_name
 import json
-
 import pygame
 
 
@@ -24,7 +23,7 @@ class UIElement:
     """
     An abstract class representing a generic UI element.
 
-    UIElement objects define the common interface for all interactive and
+    UIElement objects define a common interface for all interactive and
     drawable UI components in the program, such as buttons, text fields,
     trees, and info boxes.
     """
@@ -41,102 +40,180 @@ class UIElement:
         """
         raise NotImplementedError
 
+@dataclass
+class _BoundingBox:
+    """Stores the position and rectangular area of a UI element.
 
-class TextField(UIElement):
-    default_text: str
-    font_size: int
-    input_text: str
-    top_left_cord: tuple
-    bottom_right_cord: tuple
-    is_active: bool
-    clear_default_value: bool
+    Instance Attributes:
+        - top_left_cord: Top-left coordinate of the element.
+        - bottom_right_cord: Bottom-right coordinate of the element.
+        - rect: Rectangular pygame region representing the element.
+
+    Representation Invariants:
+        - self.top_left_cord[0] < self.bottom_right_cord[0]
+        - self.top_left_cord[1] < self.bottom_right_cord[1]
+        - self.rect.left == self.top_left_cord[0]
+        - self.rect.top == self.top_left_cord[1]
+        - self.rect.right == self.bottom_right_cord[0]
+        - self.rect.bottom == self.bottom_right_cord[1]
+    """
+    top_left_cord: tuple[int, int]
+    bottom_right_cord: tuple[int, int]
     rect: pygame.Rect
 
-    def __init__(self, default_text: str, font_size: int, top_left_cord: tuple, bottom_right_cord: tuple) -> None:
+class TextField(UIElement):
+    """
+    Represents a text input field. This field enables users to
+     type text and it visually updates based on input.
+
+    Instance Attributes:
+        - default_text: the placeholder/default text shown initially
+        - font_size: font size used for rendering the text
+        - bounds: stores the pygame rectangle and coordinates defining the field area through a dataclass
+
+    Private Attributes:
+        - _input_text: the current text entered by the user
+        - _is_active: whether the text field is currently focused
+    """
+    default_text: str
+    _input_text: str
+    font_size: int
+    _is_active: bool
+    bounds: _BoundingBox
+
+    def __init__(self, default_text: str, font_size: int, top_left_cord: tuple[int,int],
+                 bottom_right_cord: tuple[int,int]) -> None:
+        """
+        Initializes a TextField and sets up the bounding box so that TextField is in its default state.
+        """
         self.default_text = default_text
         self.font_size = font_size
-        self.top_left_cord = top_left_cord
-        self.bottom_right_cord = bottom_right_cord
-
-        self.is_active = False
+        self._is_active = False
         self.clear_default_value = False
+        self._input_text = default_text
 
-        self.input_text = default_text
-        # creating parameters of rect
+        # creating parameters of pygame rect
         width = bottom_right_cord[0] - top_left_cord[0]
         height = bottom_right_cord[1] - top_left_cord[1]
-        self.rect = pygame.Rect(top_left_cord[0], top_left_cord[1], width, height)
+        rect = pygame.Rect(top_left_cord[0], top_left_cord[1], width, height)
+
+        #storing the relevant coordinates and rect object in respective data class
+        self.bounds = _BoundingBox(top_left_cord, bottom_right_cord, rect)
 
     def handle_interaction(self, ui_event: pygame.event.Event) -> None:
-        if ui_event.type == pygame.KEYDOWN and self.is_active:
-            if self.default_text in self.input_text:
-                self.input_text = ""
+        """
+        Handle user interactions with the text field.
+        """
+        if ui_event.type == pygame.KEYDOWN and self._is_active:
+            # Clear default text if it is still present
+            if self.default_text in self._input_text:
+                self._input_text = ""
+            # Handle backspace to remove last character
             if ui_event.key == pygame.K_BACKSPACE:
-                self.input_text = self.input_text[:-1]
+                self._input_text = self._input_text[:-1]
+            # Store other characters (ignoring RETURN)
             elif ui_event.key != pygame.K_RETURN:
-                self.input_text += ui_event.unicode
+                self._input_text += ui_event.unicode
+
+        # Activate field if click is inside bounds, otherwise deactivate
         if ui_event.type == pygame.MOUSEBUTTONDOWN:
-            if self.rect.collidepoint(ui_event.pos):
-                self.is_active = True
+            if self.bounds.rect.collidepoint(ui_event.pos):
+                self._is_active = True
             else:
-                self.is_active = False
+                self._is_active = False
 
     def update_visually(self, ui_screen) -> None:
+        """
+        Draw the current text on the UI surface.
+        """
         font = pygame.font.Font("FjallaOne-Regular.ttf", self.font_size)
-        if self.is_active:
+
+        #change text colour depending on if field is focused
+        if self._is_active:
             color = (0, 0, 200)
         else:
             color = (0, 0, 0)
-        text_surface = font.render(self.input_text, True, color)
-        center_of_rect = self.rect.center
-        justified_text_format = (self.top_left_cord[0], center_of_rect[1] - self.font_size // 2)
 
+        text_surface = font.render(self._input_text, True, color)
+        #Center text vertically within the field rectangle
+        center_of_rect = self.bounds.rect.center
+        #Ensure it is in justified text format
+        justified_text_format = (self.bounds.top_left_cord[0], center_of_rect[1] - self.font_size // 2)
+
+        #display text to screen
         ui_screen.blit(text_surface, justified_text_format)
 
+    #TODO: REMOVE
     def show_outline_for_debugging(self, ui_screen) -> None:
         # show outline of field
-        pygame.draw.rect(ui_screen, (0, 0, 0), self.rect, 2)
+        pygame.draw.rect(ui_screen, (0, 0, 0), self.bounds.rect, 2)
+
+    def get_input_text(self) -> str:
+        """Return the current user input."""
+        return self._input_text
 
 
 class Button(UIElement):
-    top_left_cord: tuple
-    bottom_right_cord: tuple
-    is_pressed: bool
-    rect: pygame.Rect
+    """
+    A clickable button UI element that responds to mouse interactions.
+
+    Instance Attributes:
+        - bounds: Stores the top-left, bottom-right coordinates and
+          the pygame.Rect representing the button area.
+        - on_click: Callback function triggered when the button is clicked.
+
+    Private Attributes:
+        - _is_pressed: Internal state indicating if the button is currently pressed.
+    """
+    bounds: _BoundingBox
+    _is_pressed: bool
     on_click: Callable[[], None]
 
-    def __init__(self, top_left_cord: tuple, bottom_right_cord: tuple, on_click: Callable[[], None]) -> None:
-        self.is_pressed = False
-        self.top_left_cord = top_left_cord
-        self.bottom_right_cord = bottom_right_cord
+    def __init__(self, top_left_cord: tuple[int,int], bottom_right_cord: tuple[int,int], on_click: Callable[[], None]) -> None:
+        """Initialize the Button"""
+        self._is_pressed = False
         self.on_click = on_click
-        # creating parameters of rect
+
+        # creating parameters of pygame rect
         width = bottom_right_cord[0] - top_left_cord[0]
         height = bottom_right_cord[1] - top_left_cord[1]
-        self.rect = pygame.Rect(top_left_cord[0], top_left_cord[1], width, height)
+        rect = pygame.Rect(top_left_cord[0], top_left_cord[1], width, height)
+
+        # storing the relevant coordinates and rect object in respective data class
+        self.bounds = _BoundingBox(top_left_cord, bottom_right_cord, rect)
 
     def handle_interaction(self, ui_event: pygame.event.Event) -> None:
-        if ui_event.type == pygame.MOUSEBUTTONDOWN and ui_event.button == 1:
-            if self.rect.collidepoint(ui_event.pos):
-                self.is_pressed = True
+        """Update button state based on user mouse interactions and call callable function when clicked"""
 
+        if ui_event.type == pygame.MOUSEBUTTONDOWN and ui_event.button == 1:
+            if self.bounds.rect.collidepoint(ui_event.pos):
+                self._is_pressed = True
+
+        # If left mouse button released, trigger on_click if previously pressed
         elif ui_event.type == pygame.MOUSEBUTTONUP and ui_event.button == 1:
-            if self.is_pressed:
+            if self._is_pressed:
                 self.on_click()
-            self.is_pressed = False
+            self._is_pressed = False
 
     def update_visually(self, ui_screen: pygame.Surface) -> None:
+        """
+        This method exists because Button as a UIElement is part of a UIManager, and the manager
+        iterates over all its elements and calls `update_visually` on each.
+        For buttons, no visual update is needed by default, so this method is
+        intentionally left empty to allow the UIManager to skip it without errors.
+        """
         return
 
+    #TODO: REMOVE
     def show_outline_for_debugging(self, ui_screen: pygame.Surface) -> None:
 
         # Color based on state
-        if self.is_pressed:
+        if self._is_pressed:
             color = (255, 0, 0)
         else:
             color = (0, 255, 0)
 
-        pygame.draw.rect(ui_screen, color, self.rect, 2)  # outline only
+        pygame.draw.rect(ui_screen, color, self.bounds.rect, 2)  # outline only
 
 class Checkbox(Button):
     """
@@ -181,12 +258,30 @@ class Checkbox(Button):
         if self.checked:
             img = pygame.image.load(Checkbox.CHECKBOX_FILEPATH)
             surface = pygame.transform.smoothscale(img, (self.width, self.height))
-            ui_screen.blit(surface, self.top_left_cord)
+            ui_screen.blit(surface, self.bounds.top_left_cord)
 
+@dataclass
+class _PanelCourseInfo:
+    """
+    Stores all course-related information for the info panel.
 
-class VisualizerInfoBox(UIElement):
-    x_pos: int
-    y_pos: int
+    Instance Attributes:
+        - course_code: The unique identifier for the course.
+        - course_title: The full title of the course.
+        - course_description: Description of the course content.
+        - quality_score: Average quality rating of the course.
+        - workload_score: Average workload rating of the course.
+        - assessment_score: Average assessment rating of the course.
+        - number_of_reviews: Number of student reviews for the course.
+        - top_3_profs: list containing names of top 3 rated profs
+
+    Representation Invariants:
+        - (self.quality_score >= 0 and self.quality_score <= 5) or self.quality_score == -1
+        - (self.workload_score >= 0 and self.workload_score <= 5) or self.workload_score == -1
+        - (self.assessment_score >= 0 and self.assessment_score <= 5) or self.assessment_score == -1
+        - self.number_of_reviews >= 0 or self.number_of_reviews == -1
+        value -1 indicates data not available
+    """
     course_code: str
     course_title: str
     course_description: str
@@ -194,42 +289,94 @@ class VisualizerInfoBox(UIElement):
     workload_score: int
     assessment_score: int
     number_of_reviews: int
+    top_3_profs: list[str]
+
+class VisualizerInfoBox(UIElement):
+    """
+    UI info box that displays detailed information about a selected course.
+
+    Instance Attributes:
+        - x_pos: x position of the info box
+        - y_pos: y position of the info box.
+        - course_info: CourseInfo dataclass storing all course-related data.
+        - is_enabled: Whether the info box is enabled to display information.
+        - is_open: Whether the info box is currently open (expanded) on screen.
+        - images: List of pygame.Surface objects used for UI rendering.
+        - buttons: List of Button objects for interacting with the info box.
+
+    Representation Invariants:
+        - len(self.images) ==  3     (background, star image, shield background)
+        - len(self.buttons) == 2     (panel toggle and read more)
+    """
+    x_pos: int
+    y_pos: int
+    course_info: _PanelCourseInfo
     is_enabled: bool
     is_open: bool
     images: list[pygame.Surface]
     buttons: list[Button]
 
     def __init__(self, x_pos: int, y_pos: int):
-        self.course_title = ""
-        self.course_description = ""
-        self.selected_course_code = ""
-        self.quality_score = -1
-        self.workload_score = -1
-        self.assessment_score = -1
-        self.number_of_reviews = -1
-        self.is_enabled = False
-        self.is_open = False
+        """Initialize the visualizer info box"""
+
         self.x_pos = x_pos
         self.y_pos = y_pos
+        self._initialize_course_info()
+
+        #Defualt settings for info box state
+        self.is_enabled = False
+        self.is_open = False
+
+        #loading all relevant images and storing in list
         background_image = pygame.transform.smoothscale(pygame.image.load("info_panel_cc_v3.png"), (453, 750))
         filled_star_image = pygame.transform.smoothscale(pygame.image.load(
             "ui_star_course_compass.png"), (30, 30))
         background_shield = pygame.transform.smoothscale(pygame.image.load("info_box_shield.png"), (455, 778))
         self.images = [background_image, filled_star_image, background_shield]
+
+        #creating both buttons and storing the in list
         panel_open_button = Button((x_pos + 45, y_pos), (x_pos + 350, y_pos + 45), self.change_state)
         read_more_button = Button((159, 393), (318, 414), self.read_more)
         self.buttons = [panel_open_button, read_more_button]
 
-    def update_information(self, selected_course_code: str, course_title: str, course_description: str,
-                           quality_score: int, workload_score: int,
-                           assessment_score: int, number_of_reviews: int):
-        self.selected_course_code = selected_course_code
-        self.course_title = course_title
-        self.course_description = course_description
-        self.quality_score = quality_score
-        self.workload_score = workload_score
-        self.assessment_score = assessment_score
-        self.number_of_reviews = number_of_reviews
+
+    def _initialize_course_info(self):
+        """
+        Private helper for setting up the default value for self.course_info
+        """
+        course_title = ""
+        course_description = ""
+        selected_course_code = ""
+        quality_score = -1
+        workload_score = -1
+        assessment_score = -1
+        number_of_reviews = -1
+        top_3_profs = []
+        # Storing data in dataclass
+        self.course_info = _PanelCourseInfo(selected_course_code,
+                                            course_title, course_description, quality_score,
+                                            workload_score, assessment_score, number_of_reviews, top_3_profs)
+
+    def update_information(self, selected_course_code: str, course_title: str, course_description: str):
+
+        self.course_info.course_code = selected_course_code
+        self.course_info.course_title = course_title
+        self.course_info.course_description = course_description
+
+        if self.is_enabled:
+            with open("course_data_computed.json", "r") as file:
+                data = json.load(file)
+            course_quality = data[selected_course_code]["grouped_metrics"]["course_quality"]
+            workload = data[selected_course_code]["grouped_metrics"]["workload"]
+            assessment_quality = data[selected_course_code]["grouped_metrics"]["assessment_quality"]
+            num_reviews = data[selected_course_code]["num_responses"]
+            top_3_profs = data[selected_course_code]["profs_by_rating"][:3]
+
+            self.course_info.quality_score = course_quality
+            self.course_info.workload_score = workload
+            self.course_info.assessment_score = assessment_quality
+            self.course_info.number_of_reviews = num_reviews
+            self.course_info.top_3_profs = top_3_profs
 
     def handle_interaction(self, ui_event: pygame.event.Event):
         for button in self.buttons:
@@ -244,52 +391,61 @@ class VisualizerInfoBox(UIElement):
 
     def read_more(self):
         if self.is_enabled and self.is_open:
-            webbrowser.open(link_of_course.course_link_generate(self.selected_course_code))
+            webbrowser.open(link_of_course.course_link_generate(self.course_info.course_code))
 
     def update_visually(self, ui_screen):
         if self.is_enabled and self.is_open:
+
             ui_screen.blit(self.images[2], (self.x_pos, self.y_pos - 20))
             ui_screen.blit(self.images[0], (self.x_pos, self.y_pos))
-            self.buttons[0].rect.topleft = (self.x_pos + 45, self.y_pos)
-            font_text = pygame.font.Font("RobotoMono-VariableFont_wght.ttf", 12)
-            font_heading = pygame.font.Font("FjallaOne-Regular.ttf", 25)
-            font_text_styled = pygame.font.Font("FjallaOne-Regular.ttf", 12)
+            self.buttons[0].bounds.rect.topleft = (self.x_pos + 45, self.y_pos)
 
-            #visual elements of being open:
-            #heading
-            heading_x = self.x_pos + 40
-            heading_y = self.y_pos + 60
-            display_multiline_text("Heading", self.course_title, (heading_x, heading_y), font_heading, ui_screen, None)
-            #body text
-            text_x = self.x_pos + 40
-            text_y = self.y_pos + 140
-            display_multiline_text("Body", self.course_description, (text_x, text_y), font_text, ui_screen, None)
-            #rate my prof scores:
-            with open("course_data_computed.json", "r") as file:
-                data = json.load(file)
-            course_quality = data[self.selected_course_code]["grouped_metrics"]["course_quality"]
-            workload = data[self.selected_course_code]["grouped_metrics"]["workload"]
-            assessment_quality = data[self.selected_course_code]["grouped_metrics"]["assessment_quality"]
-            _score_visualizer(round(course_quality), 449, self.images[1], ui_screen)
-            _score_visualizer(round(workload), 513, self.images[1], ui_screen)
-            _score_visualizer(round(assessment_quality), 588, self.images[1], ui_screen)
-            top_3_profs = data[self.selected_course_code]["profs_by_rating"][:3]
-            for i in range(len(top_3_profs)):
-                name = trim_name(top_3_profs[i], 30)
-                text_surface = font_text_styled.render(name, True, (35, 68, 119))
-                ui_screen.blit(text_surface, (275, 652 + i * 18))
-            #num_reviews
-            reviews_border_rect = pygame.Rect(171, 726, 307 - 171, 733 - 726)
-            num_reviews = data[self.selected_course_code]["num_responses"]
-            text_surface = font_text.render(str(num_reviews) + " reviews", True, (0, 0, 0))
-            text_rect = text_surface.get_rect(center=reviews_border_rect.center)
-            ui_screen.blit(text_surface, text_rect)
-
+            self._display_course_title_description(ui_screen)
+            self._display_stars(ui_screen)
+            self._display_prof_ranking(ui_screen)
+            self._display_review_number(ui_screen)
 
         elif self.is_enabled and not self.is_open:
             ui_screen.blit(self.images[2], (self.x_pos, self.y_pos + 800))
             ui_screen.blit(self.images[0], (self.x_pos, self.y_pos + 700))
-            self.buttons[0].rect.topleft = (self.x_pos + 45, self.y_pos + 700)
+            self.buttons[0].bounds.rect.topleft = (self.x_pos + 45, self.y_pos + 700)
+
+    def _display_course_title_description(self, ui_screen: pygame.Surface):
+        font_text = pygame.font.Font("RobotoMono-VariableFont_wght.ttf", 12)
+        font_heading = pygame.font.Font("FjallaOne-Regular.ttf", 25)
+        # visual elements of being open:
+        # heading
+        heading_x = self.x_pos + 40
+        heading_y = self.y_pos + 60
+        display_multiline_text("Heading", self.course_info.course_title, (heading_x, heading_y), font_heading,
+                               ui_screen, None)
+        # body text
+        text_x = self.x_pos + 40
+        text_y = self.y_pos + 140
+        display_multiline_text("Body", self.course_info.course_description, (text_x, text_y), font_text, ui_screen,
+                               None)
+    def _display_stars(self, ui_screen: pygame.Surface):
+        _score_visualizer(round(self.course_info.quality_score), 449, self.images[1], ui_screen)
+        _score_visualizer(round(self.course_info.workload_score), 513, self.images[1], ui_screen)
+        _score_visualizer(round(self.course_info.assessment_score), 588, self.images[1], ui_screen)
+
+    def _display_prof_ranking(self, ui_screen: pygame.Surface):
+        font_text_styled = pygame.font.Font("FjallaOne-Regular.ttf", 12)
+        for i in range(len(self.course_info.top_3_profs)):
+            name = trim_name(self.course_info.top_3_profs[i], 30)
+            text_surface = font_text_styled.render(name, True, (35, 68, 119))
+            ui_screen.blit(text_surface, (275, 652 + i * 18))
+
+    def _display_review_number(self, ui_screen: pygame.Surface):
+        font_text = pygame.font.Font("RobotoMono-VariableFont_wght.ttf", 12)
+        # num_reviews
+        reviews_border_rect = pygame.Rect(171, 726, 307 - 171, 733 - 726)
+        text_surface = font_text.render(str(self.course_info.number_of_reviews) + " reviews", True, (0, 0, 0))
+        text_rect = text_surface.get_rect(center=reviews_border_rect.center)
+        ui_screen.blit(text_surface, text_rect)
+
+    def get_course_title(self) -> str:
+        return self.course_info.course_title
 
 
 class TextDisplayer(UIElement):
@@ -322,6 +478,8 @@ class TextDisplayer(UIElement):
 
     def handle_interaction(self, ui_event: pygame.event.Event) -> None:
         return
+
+
 
 
 def _score_visualizer(score: int, y_pos: int, star_image, ui_screen) -> None:
@@ -465,18 +623,12 @@ class TreeController(UIElement):
             course_title, description = self.loader.get_name_and_description(self.code_clicked)
         except CourseNotFoundError:
             # Check if the info box is currently not displaying anything
-            if self.course_info_box.course_title == "":
+            if self.course_info_box.get_course_title() == "":
                 # The info box is not displaying anything, so it shouldn't pop up (sorry you can rewrite these
                 # comments lol they're trash idk how your code works
                 self.course_info_box.is_enabled = False
             return
-        course_quality_score = 0
-        assessment_score = 0
-        workload_score = 0
-        number_of_reviews = 0
-        prof_ranking = []
-        self.course_info_box.update_information(selected_course_code, course_title, description, course_quality_score,
-                                                assessment_score, workload_score, number_of_reviews)
+        self.course_info_box.update_information(selected_course_code, course_title, description)
 
     def show_outline_for_debugging(self, ui_screen: pygame.Surface) -> None:
         color = (255, 0, 255)

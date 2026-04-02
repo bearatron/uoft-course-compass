@@ -202,7 +202,7 @@ class Slider(UIManager):
     def show_outline_for_debugging(self, ui_screen) -> None:
         # show outline of options
         for button in self.option_buttons:
-            pygame.draw.rect(ui_screen, (0, 255, 0), button.rect, 2)
+            pygame.draw.rect(ui_screen, (0, 255, 0), button.bounds.rect, 2)
 
 
 class MainScreenUI(UIManager):
@@ -314,7 +314,7 @@ class MainScreenUI(UIManager):
         self.summer_offering_button = Button(
             (272, 575),
             (424, 600),
-            lambda main_screen_ui=self: show_summer_offerings(self.visualizer_search_field.input_text, main_screen_ui),
+            lambda main_screen_ui=self: show_summer_offerings(self.visualizer_search_field.get_input_text(), main_screen_ui),
         )
         # append to ui_components list for handle_event to work properly
         self.ui_components.append(self.summer_offering_button)
@@ -334,8 +334,8 @@ class MainScreenUI(UIManager):
             (272, 725),
             (424, 747),
             lambda main_screen_ui=self: generate_course_difference_tree(
-                self.visualizer_search_field.input_text,
-                self.course_difference_search_field.input_text,
+                self.visualizer_search_field.get_input_text(),
+                self.course_difference_search_field.get_input_text(),
                 self.course_difference_tree, self.loader, main_screen_ui
             )
         )
@@ -379,7 +379,7 @@ class MainScreenUI(UIManager):
             (165, 275),
             (315, 298),
             lambda course_manager=self.course_manager, loader=self.loader, main_screen_ui=self: generate_course_tree(
-                self.visualizer_search_field.input_text,
+                self.visualizer_search_field.get_input_text(),
                 self.course_tree_slider.curr_selection,
                 self.course_tree_simplify_checkbox.checked,
                 course_manager,
@@ -427,7 +427,7 @@ class MainScreenUI(UIManager):
             (165, 478),
             (315, 500),
             lambda course_manager=self.course_manager, loader=self.loader, main_screen_ui=self: generate_optimal_tree(
-                self.visualizer_search_field.input_text,
+                self.visualizer_search_field.get_input_text(),
                 CourseSpectrumOptions.idx_to_metric[self.optimal_path_slider.curr_selection][0],
                 CourseSpectrumOptions.idx_to_metric[self.optimal_path_slider.curr_selection][1],
                 course_manager,
