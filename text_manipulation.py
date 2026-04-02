@@ -57,7 +57,9 @@ def display_multiline_text(
 
 
 def trim_name(name: str, max_length: int) -> str:
-    name = name.split(",")[0]  #takes last name only
+    """
+    Return a professor's full name trimmed to be at most max_length characters
+    """
     if len(name) > max_length:
         return name[:max_length - 3] + "..."
     return name

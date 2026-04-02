@@ -9,6 +9,7 @@ import webbrowser
 import link_of_course
 from academic_calendar_reader import PrerequisiteTreeLoader, CourseNotFoundError
 from course_tree import CourseTree
+from operator import sub
 
 from text_manipulation import display_multiline_text, trim_name
 import json
@@ -134,6 +135,51 @@ class Button(UIElement):
             color = (0, 255, 0)
 
         pygame.draw.rect(ui_screen, color, self.rect, 2)  # outline only
+
+class Checkbox(Button):
+    """
+    A Checkbox UI element
+    """
+    # Static instance attributes:
+    #   - CHECKBOX_FILEPATH: a str representing the filepath to the checkbox image
+    #   - WIDTH_TO_HEIGHT: a float that is the ratio between checkbox image's width and height
+    CHECKBOX_FILEPATH: str = "check_mark.png"
+    WIDTH_TO_HEIGHT: float = 100 / 125
+    # Instance Attributes:
+    #   - width: an int representing the checkbox width
+    #   - height: an int representing the checkbox height
+    #   - checked: a bool representing whether the checkbox is checked
+    width: int
+    height: int
+    checked: bool
+
+    def __init__(self, top_left_coord, width) -> None:
+        self.width = width
+        self.height = int(self.width * Checkbox.WIDTH_TO_HEIGHT)
+        self.checked = False
+
+        x, y = top_left_coord
+        bottom_right_coord = (x + self.width, y + self.height)
+        super().__init__(
+            top_left_coord,
+            bottom_right_coord,
+            lambda: self.toggle_checkbox()
+        )
+
+    def toggle_checkbox(self) -> None:
+        """
+        Toggle checked state
+        """
+        self.checked = not self.checked
+
+    def update_visually(self, ui_screen: pygame.Surface) -> None:
+        """
+        Display checkbox if checked
+        """
+        if self.checked:
+            img = pygame.image.load(Checkbox.CHECKBOX_FILEPATH)
+            surface = pygame.transform.smoothscale(img, (self.width, self.height))
+            ui_screen.blit(surface, self.top_left_cord)
 
 
 class VisualizerInfoBox(UIElement):
@@ -283,7 +329,7 @@ def _score_visualizer(score: int, y_pos: int, star_image, ui_screen) -> None:
     #todo:raise error
 
 
-class TreeController:
+class TreeController(UIElement):
     """
     A class responsible for controlling the viewing position and interaction
     of the course tree visualization.
@@ -304,12 +350,16 @@ class TreeController:
         - code_clicked: the course code of the node currently being clicked
         - initial_mouse_down_pos: the mouse position when the click began
         - course_info_box: the info box UI element associated with the tree
+        - rect: the bounding box where zooming and dragging works
+
 
     Representation Invariants:
         - self.zoom_factor > 0
         - self.x_pos_tree >= 0
         - self.y_pos_tree >= 0
      """
+    top_left_coord: tuple[int, int]
+    bottom_right_coord: tuple[int, int]
     x_pos_tree: int
     y_pos_tree: int
     dragging: bool
@@ -320,10 +370,25 @@ class TreeController:
     initial_mouse_down_pos: tuple[int, int] | None
     course_info_box: VisualizerInfoBox
     loader: PrerequisiteTreeLoader
+    rect: pygame.Rect
 
-    def __init__(self, course_info_box: VisualizerInfoBox, loader: PrerequisiteTreeLoader) -> None:
-        self.x_pos_tree = 838
-        self.y_pos_tree = 100
+    def __init__(self,
+                 course_info_box: VisualizerInfoBox,
+                 loader: PrerequisiteTreeLoader,
+                 top_left_coord: tuple[int, int],
+                 bottom_right_coord: tuple[int, int]) -> None:
+        """
+        Initializes an instance of TreeCamera
+
+        Preconditions
+            - top_left_coord is None == bottom_right_coord is None
+        """
+        width, height = tuple(map(sub, bottom_right_coord, top_left_coord))
+        self.rect = pygame.Rect(top_left_coord[0], top_left_coord[1], width, height)
+
+        self.x_pos_tree = top_left_coord[0] + (width // 2) - (Tree.NODE_WIDTH // 2)
+        self.y_pos_tree = top_left_coord[1] + 70
+
         self.dragging = False
         self.zoom_factor = 1
         self.previous_mouse_pos = None
@@ -333,57 +398,65 @@ class TreeController:
         self.course_info_box = course_info_box
         self.loader = loader
 
+    def update_visually(self, ui_screen: pygame.Surface) -> None:
+        return
+
+
     def handle_interaction(self, mouse_event: pygame.event.Event) -> None:
-        if mouse_event.type == pygame.MOUSEWHEEL:
-            if mouse_event.y > 0:
-                self.zoom_factor *= 1.1
-            elif mouse_event.y < 0:
-                self.zoom_factor *= 0.9
-            # TODO:is limit on zoom needed?
-            # screen_zoom_factor = max(0.3, min(screen_zoom_factor, 3))
-        # the start of mouse drag based tree movement
-        if mouse_event.type == pygame.MOUSEBUTTONDOWN and mouse_event.button == 1:
-            self.dragging = True
-            mouse_position = pygame.mouse.get_pos()
-            self.previous_mouse_pos = mouse_position
-            self.initial_mouse_down_pos = mouse_position
+        """
+        Handle zooming and dragging of the tree in its bounding rectangle
+        """
+        if self.rect.collidepoint(pygame.mouse.get_pos()):
+            if mouse_event.type == pygame.MOUSEWHEEL:
+                if mouse_event.y > 0:
+                    self.zoom_factor *= 1.1
+                elif mouse_event.y < 0:
+                    self.zoom_factor *= 0.9
+                # TODO:is limit on zoom needed?
+                # screen_zoom_factor = max(0.3, min(screen_zoom_factor, 3))
+            # the start of mouse drag based tree movement
+            if mouse_event.type == pygame.MOUSEBUTTONDOWN and mouse_event.button == 1:
+                self.dragging = True
+                mouse_position = pygame.mouse.get_pos()
+                self.previous_mouse_pos = mouse_position
+                self.initial_mouse_down_pos = mouse_position
 
-            # check if a node is being clicked on:
-            for item in self.node_course_code_map:
-                node = item[0]
-                node_course_code = item[1]
-                if node.collidepoint(mouse_event.pos):
-                    self.code_clicked = node_course_code
-        # the actual mouse dragging movement
-        if mouse_event.type == pygame.MOUSEMOTION and self.dragging:
-            current_mouse_pos = pygame.mouse.get_pos()
-            displacement_x = current_mouse_pos[0] - self.previous_mouse_pos[0]
-            displacement_y = current_mouse_pos[1] - self.previous_mouse_pos[1]
-
-            # zoom-aware movement
-            self.x_pos_tree += displacement_x
-            self.y_pos_tree += displacement_y
-
-            self.previous_mouse_pos = current_mouse_pos
-        # the end of mouse drag based tree movement
-        if mouse_event.type == pygame.MOUSEBUTTONUP:
-            if mouse_event.button == 1:
-                self.dragging = False
+                # check if a node is being clicked on:
+                for item in self.node_course_code_map:
+                    node = item[0]
+                    node_course_code = item[1]
+                    if node.collidepoint(mouse_event.pos):
+                        self.code_clicked = node_course_code
+            # the actual mouse dragging movement
+            if mouse_event.type == pygame.MOUSEMOTION and self.dragging:
                 current_mouse_pos = pygame.mouse.get_pos()
-                if self.code_clicked is not None:
-                    displacement_x = current_mouse_pos[0] - self.initial_mouse_down_pos[0]
-                    displacement_y = current_mouse_pos[1] - self.initial_mouse_down_pos[1]
+                displacement_x = current_mouse_pos[0] - self.previous_mouse_pos[0]
+                displacement_y = current_mouse_pos[1] - self.previous_mouse_pos[1]
 
-                    if displacement_x < 2 and displacement_y < 2:
-                        self.course_info_box.is_enabled = True
-                        self.update_info_box()
-                    self.code_clicked = None
-                # if x_pos is on the white space, and its clicking ourside a course, info pannel closes
-                elif current_mouse_pos[0] >= 475:
-                    self.course_info_box.is_enabled = False
+                # zoom-aware movement
+                self.x_pos_tree += displacement_x
+                self.y_pos_tree += displacement_y
+
+                self.previous_mouse_pos = current_mouse_pos
+            # the end of mouse drag based tree movement
+            if mouse_event.type == pygame.MOUSEBUTTONUP:
+                if mouse_event.button == 1:
+                    self.dragging = False
+                    current_mouse_pos = pygame.mouse.get_pos()
+                    if self.code_clicked is not None:
+                        displacement_x = current_mouse_pos[0] - self.initial_mouse_down_pos[0]
+                        displacement_y = current_mouse_pos[1] - self.initial_mouse_down_pos[1]
+
+                        if displacement_x < 2 and displacement_y < 2:
+                            self.course_info_box.is_enabled = True
+                            self.update_info_box()
+                        self.code_clicked = None
+                    # if x_pos is on the white space, and its clicking ourside a course, info pannel closes
+                    elif current_mouse_pos[0] >= 475:
+                        self.course_info_box.is_enabled = False
 
     def reset_camera(self):
-        self.__init__(self.course_info_box, self.loader)
+        self.__init__(self.course_info_box, self.loader, self.rect.topleft, self.rect.bottomright)
 
     def update_info_box(self) -> None:
         selected_course_code = self.code_clicked
@@ -405,11 +478,135 @@ class TreeController:
         self.course_info_box.update_information(selected_course_code, course_title, description, course_quality_score,
                                                 assessment_score, workload_score, number_of_reviews)
 
+    def show_outline_for_debugging(self, ui_screen: pygame.Surface) -> None:
+        color = (255, 0, 255)
+        pygame.draw.rect(ui_screen, color, self.rect, 2)
+
+class CourseDifference(TreeController):
+    course1_exclusive: set[str]
+    course2_exclusive: set[str]
+    same_to_both: set[str]
+    info_box: VisualizerInfoBox
+
+
+    def __init__(self, course_info_box: VisualizerInfoBox, loader: PrerequisiteTreeLoader) -> None:
+        super().__init__(course_info_box, loader,(480, 30), (1400, 750))
+        self.course1_exclusive = set()
+        self.course2_exclusive = set()
+        self.same_to_both = set()
+        self.info_box = course_info_box
+
+    def reset_camera(self) -> None:
+        print(self.course1_exclusive)
+        print(self.same_to_both)
+        print(self.course2_exclusive)
+        self.top_left_coord = (480, 30)
+        self.bottom_right_coord = (1400, 750)
+
+    def update_visually(self, ui_screen: pygame.Surface) -> None:
+        self.node_course_code_map.clear()
+        HORIZONTAL_SPACING = 300
+        VERTICAL_SPACING = 300
+        for idx, course_code in enumerate(self.course1_exclusive):
+            self.draw_node(
+                (course_code, ""),
+                (self.x_pos_tree - HORIZONTAL_SPACING, self.y_pos_tree + idx * VERTICAL_SPACING),
+                self.zoom_factor,
+                [],
+                ui_screen
+            )
+
+        for idx, course_code in enumerate(self.same_to_both):
+            self.draw_node(
+                (course_code, ""),
+                (self.x_pos_tree, self.y_pos_tree + idx * VERTICAL_SPACING),
+                self.zoom_factor,
+                [],
+                ui_screen
+            )
+
+        for idx, course_code in enumerate(self.course2_exclusive):
+            self.draw_node(
+                (course_code, ""),
+                (self.x_pos_tree + HORIZONTAL_SPACING, self.y_pos_tree + idx * VERTICAL_SPACING),
+                self.zoom_factor,
+                [],
+                ui_screen
+            )
+
+
+    def handle_interaction(self, mouse_event: pygame.event.Event) -> None:
+        super().handle_interaction(mouse_event)
+
+    def draw_node(self, display_vals: tuple[str, str], position: tuple[int, int], screen_zoom_factor: int,
+                  node_course_code_map: list[tuple[pygame.Rect, str]], target_screen: pygame.Surface) -> None:
+        """
+        Draw a node on point (x_pos, y_pos) with text, display_val
+
+        Preconditions:
+        - screen_zoom_factor > 0
+        """
+        # Define rectangle size with respect to the screen_zoom_factor which scales the
+        # Rectangle based on how zoomed in or out the user is
+        rect_width = int(200 * screen_zoom_factor)
+        rect_height = int(50 * screen_zoom_factor)
+
+        x_pos = position[0]
+        y_pos = position[1]
+
+        COURSE_CODE_INDEX = 0
+        COURSE_MARK_INDEX = 1
+
+        # Node is a pygame rect so that it can be drawn and interacted with later on
+        node = pygame.Rect(x_pos,
+                           y_pos,
+                           rect_width,
+                           rect_height)
+
+        # Adding node to a tuple list that maps node object with course code (display_val)
+        node_course_code_map.append((node, display_vals[COURSE_CODE_INDEX]))
+
+        # Drawing rect to screen
+        pygame.draw.rect(target_screen,
+                         (161, 202, 246),
+                         node,
+                         border_radius=int(15 * screen_zoom_factor))
+
+        # Creating the node text font
+        font_size = max(12, int(24 * screen_zoom_factor))
+        node_font = pygame.font.Font("FjallaOne-Regular.ttf", font_size)
+        # Creating node text
+        text_to_display = display_vals[COURSE_CODE_INDEX] + " " + display_vals[COURSE_MARK_INDEX]
+        text_img = node_font.render(text_to_display, True, [0, 0, 0])
+        # Get text rect so that text can be centered in the rect
+        text_rect = text_img.get_rect()
+        # Setting the text to the center of the node
+        text_rect.center = (x_pos + rect_width // 2, y_pos + rect_height // 2)
+
+        # Displaying the node text
+        target_screen.blit(text_img, text_rect)
+
 
 class Tree(UIElement):
     """
     The UI element for tree
     """
+    # Static Variables (constants for tree layout):
+    #   - NODE_WIDTH: node's width
+    #   - NODE_HEIGHT: node's height
+    #   - VERTICAL_SPACING: vertical space between each node
+    #   - LINE_THICKNESS: thickness of the line connecting two nodes
+    #   - LINE_COLOR: color of the lines connecting two nodes
+    NODE_WIDTH = 200
+    NODE_HEIGHT = 50
+    VERTICAL_SPACING = 150
+    LINE_THICKNESS = 4
+    LINE_COLOR = (0, 0, 0)
+
+    # Instance attributes:
+    #   - tree_camera: a TreeCamera to be used to control the tree
+    #   - course_tree: a CourseTree to be displayed
+
     tree_camera: TreeController
     course_tree: CourseTree
 
@@ -461,24 +658,17 @@ class Tree(UIElement):
                 # Place child node in center of its allocated space
                 child_x = start_x_pos + subtree_width // 2
 
-                # Constants for tree layout
-                NODE_WIDTH = 200
-                NODE_HEIGHT = 50
-                VERTICAL_SPACING = 150
-                LINE_THICKNESS = 4
-                LINE_COLOR = (0, 0, 0)
-
                 # Draw line from parent to child
                 pygame.draw.line(
-                    target_screen, LINE_COLOR,
-                    (x_pos + int(NODE_WIDTH / 2 * tree_zoom_factor),
-                     y_pos + int(NODE_HEIGHT * tree_zoom_factor)),
-                    (child_x + int(NODE_WIDTH / 2 * tree_zoom_factor),
-                     y_pos + int(VERTICAL_SPACING * tree_zoom_factor)),
-                    max(1, int(LINE_THICKNESS * tree_zoom_factor))
+                    target_screen, Tree.LINE_COLOR,
+                    (x_pos + int(Tree.NODE_WIDTH / 2 * tree_zoom_factor),
+                     y_pos + int(Tree.NODE_HEIGHT * tree_zoom_factor)),
+                    (child_x + int(Tree.NODE_WIDTH / 2 * tree_zoom_factor),
+                     y_pos + int(Tree.VERTICAL_SPACING * tree_zoom_factor)),
+                    max(1, int(Tree.LINE_THICKNESS * tree_zoom_factor))
                 )
 
-                self.draw_tree_visualization(subtree, (child_x, y_pos + int(VERTICAL_SPACING * tree_zoom_factor)),
+                self.draw_tree_visualization(subtree, (child_x, y_pos + int(Tree.VERTICAL_SPACING * tree_zoom_factor)),
                                              spacing_factor, tree_zoom_factor,
                                              node_course_code_map, target_screen)
 
@@ -543,4 +733,8 @@ class Tree(UIElement):
             for subtree in tree.get_subtrees():
                 width_so_far += self.tree_width(subtree)
             return width_so_far
+
+    def show_outline_for_debugging(self, ui_screen: pygame.Surface) -> None:
+        self.tree_camera.show_outline_for_debugging(ui_screen)
+
 

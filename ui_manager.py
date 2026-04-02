@@ -13,12 +13,13 @@ import pygame
 from dataclasses import dataclass
 import json
 
-from ui_element import UIElement, Button, TreeController, VisualizerInfoBox, TextField, TextDisplayer, Tree
+from ui_element import UIElement, Button, TreeController, VisualizerInfoBox, TextField, TextDisplayer, Tree, Checkbox, \
+    CourseDifference
 from course_tree import CourseTree
 from academic_calendar_reader import PrerequisiteTreeLoader, CourseNotFoundError
 
 from optimal_path_to_course import optimal_path_to_course
-
+from post_req_tree import PostrequisiteTreeLoader, course_difference_tree
 
 class CourseManager:
     """
@@ -215,10 +216,12 @@ class MainScreenUI(UIManager):
     #   - TREE_OUTPUT: an int representing the fact that the panel should output a tree
     #   - TEXT_OUTPUT: an int representing the fact that the panel should output text
     #   - ERROR_OUTPUT: an int representing the fact that the panel should output an error
+    #   - COURSE_DIFFERENCE_OUTPUT: an int representing the fact that the course difference tree is outputted
     #   - BG_PATH: a str representing the file path to the UI background
     TREE_OUTPUT = 0
     TEXT_OUTPUT = 1
     ERROR_OUTPUT = 2
+    COURSE_DIFFERENCE_OUTPUT = 3
     BG_PATH = "course_compass_main_ui_v7.png"
 
     # Instance attributes:
@@ -236,7 +239,9 @@ class MainScreenUI(UIManager):
     #   - course_tree_options: a dataclass to store whether a prereq or postreq tree should be displayed
     #   - course_tree_slider: a slider that allows the user to choose to display prereq or postreq tree
     #   - course_tree_generate_button: a button that generates the course tree
-    #   - course_tree_simplify: a bool that dictates whether to simplify the tree if it's a prereq tree
+    #   - course_tree_simplify_checkbox: a Checkbox that stores whether
+    #       to simplify the tree if it's a prereq tree
+
     panel_output_mode: int
     tree_type: int
     tree_camera: TreeController
@@ -251,7 +256,10 @@ class MainScreenUI(UIManager):
     course_tree_options: CourseTreeOptions
     course_tree_slider: Slider
     course_tree_generate_button: Button
-    course_tree_simplify: bool
+    course_tree_simplify_checkbox: Checkbox
+    course_difference_search_field: TextField
+    course_difference_generate_button: Button
+    course_difference_tree: CourseDifference
     course_manager: CourseManager
     loader: PrerequisiteTreeLoader
 
@@ -299,6 +307,10 @@ class MainScreenUI(UIManager):
         # TODO: remove once handle_event is implemented based on panel_output mode
         self.ui_components.append(self.visualizer_search_field)
 
+        #####################################
+        # Summer Offerings related elements #
+        #####################################
+
         # create summer offerings button
         self.summer_offering_button = Button(
             (272, 575),
@@ -308,6 +320,32 @@ class MainScreenUI(UIManager):
         # append to ui_components list for handle_event to work properly
         # TODO: remove once handle_event is implemented based on panel_output mode
         self.ui_components.append(self.summer_offering_button)
+
+        ###########################################
+        # Course Difference Tree related elements #
+        ###########################################
+        self.course_difference_search_field = TextField(
+            "Course to compare to",
+            18,
+            (260, 690),
+            (430, 717)
+        )
+        self.ui_components.append(self.course_difference_search_field)
+
+        self.course_difference_generate_button = Button(
+            (272, 725),
+            (424, 747),
+            lambda main_screen_ui=self: generate_course_difference_tree(
+                self.visualizer_search_field.input_text,
+                self.course_difference_search_field.input_text,
+                self.course_difference_tree, self.loader, main_screen_ui
+            )
+        )
+        self.ui_components.append(self.course_difference_generate_button)
+
+        self.course_difference_tree = CourseDifference(self.info_box, self.loader)
+        self.ui_components.append(self.course_difference_tree)
+
 
         ################################
         # Course Tree related elements #
@@ -323,7 +361,10 @@ class MainScreenUI(UIManager):
         self.ui_components.append(self.course_tree_slider)
 
         # construct the tree ui element from a TreeCamera and CourseTree
-        self.tree_camera = TreeController(self.info_box, self.loader)
+        top_left_coord = (480, 30)
+        bottom_right_coord = (1400, 750)
+
+        self.tree_camera = TreeController(self.info_box, self.loader, top_left_coord, bottom_right_coord) #TODO: ETHAN
         self.course_tree = CourseTree(None, -1, [])  # set course_tree to an empty tree as the default value
         self._tree_ui_element = Tree(self.tree_camera, self.course_tree)
 
@@ -331,7 +372,8 @@ class MainScreenUI(UIManager):
         # TODO: remove once handle_event is implemented based on panel_output mode
         self.ui_components.append(self._tree_ui_element)
 
-        self.course_tree_simplify = True  # TODO: make this based on checkbox
+        self.course_tree_simplify_checkbox = Checkbox((288, 239), 23)
+        self.ui_components.append(self.course_tree_simplify_checkbox)
 
         # course tree "Generate" button
         # CourseTreeOptions contains a mapping from the prereq/postreq slider's selected id
@@ -342,7 +384,7 @@ class MainScreenUI(UIManager):
             lambda course_manager=self.course_manager, loader=self.loader, main_screen_ui=self: generate_course_tree(
                 self.visualizer_search_field.input_text,
                 self.course_tree_slider.curr_selection,
-                self.course_tree_simplify,
+                self.course_tree_simplify_checkbox.checked,
                 course_manager,
                 loader,
                 main_screen_ui
@@ -350,9 +392,9 @@ class MainScreenUI(UIManager):
         )
         self.ui_components.append(self.course_tree_generate_button)
 
-        ####################################
-        # Course Spectrum related elements #
-        ####################################
+        #################################
+        # Optimal path related elements #
+        #################################
 
         # x boundaries of the course spectrum slider
         left_x = 45
@@ -417,6 +459,8 @@ class MainScreenUI(UIManager):
             self.text_displayer.update_visually(ui_screen)
         elif self.panel_output_mode == MainScreenUI.ERROR_OUTPUT:
             self.error_displayer.update_visually(ui_screen)
+        elif self.panel_output_mode == MainScreenUI.COURSE_DIFFERENCE_OUTPUT:
+            self.course_difference_tree.update_visually(ui_screen)
         else:
             print("!!! No valid screen panel output mode was set !!!")
 
@@ -434,12 +478,23 @@ class MainScreenUI(UIManager):
         self.course_tree_slider.show_outline_for_debugging(ui_screen)
         self.course_tree_generate_button.show_outline_for_debugging(ui_screen)
 
+        self.course_tree_simplify_checkbox.update_visually(ui_screen)
+        # self.course_tree_simplify_checkbox.show_outline_for_debugging(ui_screen)
+
+        self.course_difference_search_field.update_visually(ui_screen)
+        self.course_difference_search_field.show_outline_for_debugging(ui_screen)
+
+        self.course_difference_generate_button.update_visually(ui_screen)
+        self.course_difference_generate_button.show_outline_for_debugging(ui_screen)
+
+
         self.optimal_path_slider.update_visually(ui_screen)
         self.optimal_path_slider.show_outline_for_debugging(ui_screen)
 
         # draw the info panel last, as it should be displayed on top of everything
         if self.panel_output_mode == MainScreenUI.TREE_OUTPUT:
             self.info_box.update_visually(ui_screen)  # TODO: THIRD BUG FIX
+            self._tree_ui_element.show_outline_for_debugging(ui_screen)
 
 
 def show_summer_offerings(course: str, main_screen_ui: MainScreenUI) -> None:
@@ -573,3 +628,51 @@ def generate_course_tree(course_code: str, tree_type: int, simplified: bool, cou
         # set panel output mode to tree output
         main_screen_ui.tree_camera.reset_camera()
         main_screen_ui.panel_output_mode = MainScreenUI.TREE_OUTPUT
+
+def generate_course_difference_tree(original_course: str,
+                                    course_to_compare: str,
+                                    course_difference: CourseDifference,
+                                    loader: PrerequisiteTreeLoader,
+                                    main_screen_ui: MainScreenUI) -> None:
+    """
+    Display a course difference tree, showing the difference between the original course and the course to compare
+    """
+
+    try:
+        tree1 = loader.get_postrequisite_tree(original_course)
+    except CourseNotFoundError:
+        # handle errors by setting the error display text
+        if original_course == "":
+            main_screen_ui.error_displayer.display_text = "Please enter a non-empty course code"
+        else:
+            main_screen_ui.error_displayer.display_text = \
+                f"The course '{original_course}' is invalid or doesn't exist"
+
+        # change panel output mode to error output
+        main_screen_ui.panel_output_mode = MainScreenUI.ERROR_OUTPUT
+        return
+
+    try:
+        tree2 = loader.get_postrequisite_tree(course_to_compare)
+    except CourseNotFoundError:
+        # handle errors by setting the error display text
+        if original_course == "":
+            main_screen_ui.error_displayer.display_text = "Please enter a non-empty course code to compare to"
+        else:
+            main_screen_ui.error_displayer.display_text = \
+                f"The course '{original_course}' you are trying to compare with is invalid or doesn't exist"
+
+        # change panel output mode to error output
+        main_screen_ui.panel_output_mode = MainScreenUI.ERROR_OUTPUT
+        return
+
+    similar_courses, tree1_exclusive, tree2_exclusive = course_difference_tree(tree1, tree2).values()
+
+    course_difference.same_to_both = similar_courses
+    course_difference.course1_exclusive = tree1_exclusive
+    course_difference.course2_exclusive = tree2_exclusive
+
+    # set panel output mode to tree output
+    main_screen_ui.course_difference_tree.reset_camera()
+    main_screen_ui.panel_output_mode = MainScreenUI.COURSE_DIFFERENCE_OUTPUT
+
