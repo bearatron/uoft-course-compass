@@ -3,6 +3,7 @@
 \usepackage{amsmath}
 \usepackage[utf8]{inputenc}
 \usepackage[margin=0.75in]{geometry}
+\usepackage{graphicx}
 
 \title{U of T Course Compass}
 \author{Shayan Bhatti, Jacob Chislett, Ethan Diep, Shuhan Yuan}
@@ -63,6 +64,7 @@ For the \verb|CourseTree| class that we use to store prerequisite information fo
 
 
 \subsection{Major Computations}
+
 
 \textbf{Building the Prerequisite Tree} \\
 
