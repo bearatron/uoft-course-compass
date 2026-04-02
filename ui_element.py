@@ -279,12 +279,12 @@ def _score_visualizer(score: int, y_pos: int, star_image, ui_screen) -> None:
     #todo:raise error
 
 
-class TreeCamera:
+class TreeController:
     """
     A class responsible for controlling the viewing position and interaction
     of the course tree visualization.
 
-    The TreeCamera handles:
+    The TreeController handles:
         - dragging the tree around the screen
         - zooming in and out
         - detecting node clicks
@@ -315,6 +315,7 @@ class TreeCamera:
     code_clicked: str | None
     initial_mouse_down_pos: tuple[int, int] | None
     course_info_box: VisualizerInfoBox
+    loader: PrerequisiteTreeLoader
 
     def __init__(self, course_info_box: VisualizerInfoBox, loader: PrerequisiteTreeLoader) -> None:
         self.x_pos_tree = 838
@@ -326,8 +327,9 @@ class TreeCamera:
         self.node_course_code_map = []
         self.code_clicked = None
         self.course_info_box = course_info_box
+        self.loader = loader
 
-    def handle_interaction(self, mouse_event: pygame.event.Event, loader: PrerequisiteTreeLoader) -> None:
+    def handle_interaction(self, mouse_event: pygame.event.Event) -> None:
         if mouse_event.type == pygame.MOUSEWHEEL:
             if mouse_event.y > 0:
                 self.zoom_factor *= 1.1
@@ -370,20 +372,20 @@ class TreeCamera:
 
                     if displacement_x < 2 and displacement_y < 2:
                         self.course_info_box.is_enabled = True
-                        self.update_info_box()  # TODO: THIS IS WHERE THE LOADER NEEDS TO GO.
+                        self.update_info_box()
                     self.code_clicked = None
                 # if x_pos is on the white space, and its clicking ourside a course, info pannel closes
                 elif current_mouse_pos[0] >= 475:
                     self.course_info_box.is_enabled = False
 
     def reset_camera(self):
-        self.__init__(self.course_info_box)
+        self.__init__(self.course_info_box, self.loader)
 
-    def update_info_box(self, loader: PrerequisiteTreeLoader) -> None:
+    def update_info_box(self) -> None:
         selected_course_code = self.code_clicked
         # TODO: Hi Shayan, I added this march 29 8:40 pm  - Jacob
         try:
-            course_title, description = loader.get_name_and_description(self.code_clicked)
+            course_title, description = self.loader.get_name_and_description(self.code_clicked)
         except CourseNotFoundError:
             # Check if the info box is currently not displaying anything
             if self.course_info_box.course_title == "":
@@ -404,10 +406,10 @@ class Tree(UIElement):
     """
     The UI element for tree
     """
-    tree_camera: TreeCamera
+    tree_camera: TreeController
     course_tree: CourseTree
 
-    def __init__(self, tree_camera: TreeCamera, course_tree: CourseTree) -> None:
+    def __init__(self, tree_camera: TreeController, course_tree: CourseTree) -> None:
         super().__init__()
         self.tree_camera = tree_camera
         self.course_tree = course_tree

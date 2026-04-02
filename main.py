@@ -1,7 +1,5 @@
 """main"""
-
-from academic_calendar_reader import CourseNotFoundError, PrerequisiteTreeLoader
-from optimal_path_to_course import CourseRatingsTree, optimal_path_to_course
+from TreeVisualizer import TreeVisualizer
 
 if __name__ == "__main__":
     visualizer = TreeVisualizer()

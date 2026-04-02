@@ -5,7 +5,7 @@ import pygame
 from dataclasses import dataclass
 import json
 
-from ui_element import UIElement, Button, TreeCamera, VisualizerInfoBox, TextField, TextDisplayer, Tree
+from ui_element import UIElement, Button, TreeController, VisualizerInfoBox, TextField, TextDisplayer, Tree
 from course_tree import CourseTree
 from academic_calendar_reader import PrerequisiteTreeLoader, CourseNotFoundError
 
@@ -231,7 +231,7 @@ class MainScreenUI(UIManager):
     #   - course_tree_simplify: a bool that dictates whether to simplify the tree if it's a prereq tree
     panel_output_mode: int
     tree_type: int
-    tree_camera: TreeCamera
+    tree_camera: TreeController
     course_tree: CourseTree
     info_box: VisualizerInfoBox
     visualizer_search_field: TextField
@@ -315,7 +315,7 @@ class MainScreenUI(UIManager):
         self.ui_components.append(self.course_tree_slider)
 
         # construct the tree ui element from a TreeCamera and CourseTree
-        self.tree_camera = TreeCamera(self.info_box)
+        self.tree_camera = TreeController(self.info_box, self.loader)
         self.course_tree = CourseTree(None, -1, [])  # set course_tree to an empty tree as the default value
         self._tree_ui_element = Tree(self.tree_camera, self.course_tree)
 
