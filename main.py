@@ -23,3 +23,33 @@ if __name__ == "__main__":
     # loader = PrerequisiteTreeLoader
     # loader.load_from_programs(['Computer Science'])
     # loader.save_to_file('dataset_example.json')
+
+
+    # |----------------------------------------------------------------------------------------------------------------|
+    # | UNCOMMENT THE BELOW CODE FOR A DEMONSTRATION ON HOW THE COURSE EVALUATION DATASET IS GENERATED                 |
+    # | This code will scrape information from the UofT course evaluations calendar website, and                       |
+    # | rewrite them in a format that is easier to run computations on and save all information. The output            |
+    # | can found in demo.csv.
+    # | NOTE: GOOGLE CHROME MUST BE INSTALLED ON YOUR COMPUTER FOR THIS TO RUN                                         |
+    # |----------------------------------------------------------------------------------------------------------------|
+    # from course_evals_parser import CourseEvalsParser
+    # CourseEvalsParser.demo()
+
+    # |----------------------------------------------------------------------------------------------------------------|
+    # | UNCOMMENT THE BELOW CODE FOR A DEMONSTRATION ON HOW THE COURSE EVALUATION DATASET IS COMPUTED                  |
+    # | Computing the data is much faster than scraping so this code uses the real csv datasets. First it will         |
+    # | group all the data by course code and output it to course_data.json. Then it will perform computations         |
+    # | and output those to course_data_computed.json.                                                                 |
+    # |                                                                                                                |
+    # | The group_by_course_code function is quick, but the compute function can take around 20-30 seconds.            |
+    # |----------------------------------------------------------------------------------------------------------------|
+    # from consolidate_ratings import group_by_course_code, compute
+    #
+    # group_by_course_code([
+    #     "computer_science.csv",
+    #     "economics.csv",
+    #     "mathematics.csv",
+    #     "physics.csv",
+    #     "statistical_sciences.csv",
+    # ], "course_data.json")
+    # compute("course_data.json", "course_data_computed.json")

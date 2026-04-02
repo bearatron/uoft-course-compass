@@ -5,8 +5,7 @@ This file is Copyright (c) 2026 Shayan Bhatti, Jacob Chislett, Ethan Diep, Shuha
 
 from dataclasses import dataclass
 from typing import Optional
-from selenium.common import TimeoutException
-from selenium.webdriver.common.by import By
+from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -39,7 +38,7 @@ class WebElementHelper:
     _wait: WebDriverWait
     web_element: Optional[WebElement]
 
-    def __init__(self, locator_type: str, locator_str: str, description: str, wait: WebDriverWait):
+    def __init__(self, locator_type: str, locator_str: str, description: str, wait: WebDriverWait) -> None:
         """
         Initialize a new SeleniumElement class
         self.web_element starts as None, it gets initialized when find_on_page is called
@@ -92,6 +91,5 @@ if __name__ == '__main__':
 
     python_ta.check_all(config={
         'max-line-length': 120,
-        'extra-imports': [],
         'disable': ['static_type_checker'],
     })
