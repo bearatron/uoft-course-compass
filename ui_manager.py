@@ -1,8 +1,12 @@
-"""Docstring  # TODO: insert docstring
+"""Course management and main user interface module.
+
+This module handles the core state and user interactions for the application's
+main screen. It provides the `CourseManager` to track student course history,
+along with UI components (`UIManager`, `Slider`, and `MainScreenUI`) that manage
+event handling, visual updates, and the generation of course prerequisite trees.
 
 This file is Copyright (c) 2026 Shayan Bhatti, Jacob Chislett, Ethan Diep, Shuhan Yuan
 """
-
 
 from __future__ import annotations
 import pygame
