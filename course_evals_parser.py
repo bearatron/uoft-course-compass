@@ -1,8 +1,13 @@
-"""Docstring  # TODO: insert docstring
+"""University of Toronto Course Evaluation Scraper.
+
+This module provides the `CourseEvalsParser` class, an automated web scraper
+built with Selenium WebDriver. It is designed to navigate the UofT course
+evaluations portal, interact with search filters and dropdowns, handle
+paginated data tables, and extract historical course ratings and metrics
+into a structured CSV format for further analysis.
 
 This file is Copyright (c) 2026 Shayan Bhatti, Jacob Chislett, Ethan Diep, Shuhan Yuan
 """
-
 
 from selenium import webdriver
 from selenium.webdriver.common.by import By
