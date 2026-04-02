@@ -183,11 +183,6 @@ class Slider(UIManager):
         """
         handle interaction
         """
-        if ui_event.type == pygame.MOUSEBUTTONDOWN:
-            print(f"curr selection: {self.curr_selection}")
-            # print(f"{self.option_buttons}")
-            print("button coords:")
-            print([(b.top_left_cord, b.bottom_right_cord) for b in self.option_buttons])
         for button in self.option_buttons:
             button.handle_interaction(ui_event)
 
@@ -195,14 +190,13 @@ class Slider(UIManager):
         """
         update visually
         """
-
         selected_option_surface = self.option_surfaces[self.curr_selection]
-        #always draw slider at same location b/c its the same image in a diffrent state
+        # always draw slider at same location b/c its the same image in a diffrent state
         coords = self.option_coords[0]
         ui_screen.blit(selected_option_surface, coords)
 
     def show_outline_for_debugging(self, ui_screen) -> None:
-        # show outline of options
+        # show outline of options buttons
         for button in self.option_buttons:
             pygame.draw.rect(ui_screen, (0, 255, 0), button.rect, 2)
 
@@ -239,7 +233,8 @@ class MainScreenUI(UIManager):
     #   - course_tree_options: a dataclass to store whether a prereq or postreq tree should be displayed
     #   - course_tree_slider: a slider that allows the user to choose to display prereq or postreq tree
     #   - course_tree_generate_button: a button that generates the course tree
-    #   - course_tree_simplify: a bool that dictates whether to simplify the tree if it's a prereq tree
+    #   - course_tree_simplify_checkbox: a Checkbox that stores whether
+    #       to simplify the tree if it's a prereq tree
     panel_output_mode: int
     tree_type: int
     tree_camera: TreeCamera
@@ -254,7 +249,7 @@ class MainScreenUI(UIManager):
     course_tree_options: CourseTreeOptions
     course_tree_slider: Slider
     course_tree_generate_button: Button
-    course_tree_simplify: bool
+    course_tree_simplify_checkbox: Checkbox
 
     # Private instance attributes:
     #   - _tree_ui_element: a Tree UI element storing the tree to be displayed
@@ -327,7 +322,8 @@ class MainScreenUI(UIManager):
         # TODO: remove once handle_event is implemented based on panel_output mode
         self.ui_components.append(self._tree_ui_element)
 
-        self.course_tree_simplify = True  # TODO: make this based on checkbox
+        self.course_tree_simplify_checkbox = Checkbox((288, 239), 23)
+        self.ui_components.append(self.course_tree_simplify_checkbox)
 
         # course tree "Generate" button
         # CourseTreeOptions contains a mapping from the prereq/postreq slider's selected id
@@ -338,7 +334,7 @@ class MainScreenUI(UIManager):
             lambda: generate_course_tree(
                 self.visualizer_search_field.input_text,
                 self.course_tree_slider.curr_selection,
-                self.course_tree_simplify
+                self.course_tree_simplify_checkbox.checked
             )
         )
         self.ui_components.append(self.course_tree_generate_button)
@@ -414,7 +410,7 @@ class MainScreenUI(UIManager):
         # TODO: delete show_outline_for_debugging before submission
         ui_screen.blit(self._background_surface, (0, 0))
 
-        # show buttons to screen
+        # show buttons on screen
         self.summer_offering_button.show_outline_for_debugging(ui_screen)
         self.optimal_path_generate_button.show_outline_for_debugging(ui_screen)
 
@@ -424,6 +420,9 @@ class MainScreenUI(UIManager):
         self.course_tree_slider.update_visually(ui_screen)
         self.course_tree_slider.show_outline_for_debugging(ui_screen)
         self.course_tree_generate_button.show_outline_for_debugging(ui_screen)
+
+        self.course_tree_simplify_checkbox.update_visually(ui_screen)
+        # self.course_tree_simplify_checkbox.show_outline_for_debugging(ui_screen)
 
         self.optimal_path_slider.update_visually(ui_screen)
         self.optimal_path_slider.show_outline_for_debugging(ui_screen)
@@ -561,6 +560,51 @@ class Button(UIElement):
 
         pygame.draw.rect(ui_screen, color, self.rect, 2)  # outline only
 
+
+class Checkbox(Button):
+    """
+    A Checkbox UI element
+    """
+    # Static instance attributes:
+    #   - CHECKBOX_FILEPATH: a str representing the filepath to the checkbox image
+    #   - WIDTH_TO_HEIGHT: a float that is the ratio between checkbox image's width and height
+    CHECKBOX_FILEPATH: str = "check_mark.png"
+    WIDTH_TO_HEIGHT: float = 100 / 125
+    # Instance Attributes:
+    #   - width: an int representing the checkbox width
+    #   - height: an int representing the checkbox height
+    #   - checked: a bool representing whether the checkbox is checked
+    width: int
+    height: int
+    checked: bool
+
+    def __init__(self, top_left_coord, width) -> None:
+        self.width = width
+        self.height = int(self.width * Checkbox.WIDTH_TO_HEIGHT)
+        self.checked = False
+
+        x, y = top_left_coord
+        bottom_right_coord = (x + self.width, y + self.height)
+        super().__init__(
+            top_left_coord,
+            bottom_right_coord,
+            lambda: self.toggle_checkbox()
+        )
+
+    def toggle_checkbox(self) -> None:
+        """
+        Toggle checked state
+        """
+        self.checked = not self.checked
+
+    def update_visually(self, ui_screen: pygame.Surface) -> None:
+        """
+        Display checkbox if checked
+        """
+        if self.checked:
+            img = pygame.image.load(Checkbox.CHECKBOX_FILEPATH)
+            surface = pygame.transform.smoothscale(img, (self.width, self.height))
+            ui_screen.blit(surface, self.top_left_cord)
 
 class VisualizerInfoBox(UIElement):
     x_pos: int
@@ -757,7 +801,9 @@ def display_multiline_text(
 
 
 def trim_name(name: str, max_length: int) -> str:
-    name = name.split(",")[0]  #takes last name only
+    """
+    Return a professor's full name trimmed to be at most max_length characters
+    """
     if len(name) > max_length:
         return name[:max_length - 3] + "..."
     return name
