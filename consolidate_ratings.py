@@ -248,7 +248,7 @@ def _compute_prof_data(course_offerings: list[dict], round_ndigits: int) -> dict
     profs = {}
 
     for course_offering in course_offerings:
-        prof_name = f"{course_offering["prof_last_name"]}, {course_offering["prof_first_name"]}"
+        prof_name = f"{course_offering['prof_last_name']}, {course_offering['prof_first_name']}"
 
         # prof's total_rating is the sum of their instructor_environment and instructor_engagement ratings
         # total_rating is for the purpose of calculating average_rating and will be removed prior to function return
