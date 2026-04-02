@@ -212,10 +212,12 @@ class MainScreenUI(UIManager):
     #   - TREE_OUTPUT: an int representing the fact that the panel should output a tree
     #   - TEXT_OUTPUT: an int representing the fact that the panel should output text
     #   - ERROR_OUTPUT: an int representing the fact that the panel should output an error
+    #   - COURSE_DIFFERENCE_OUTPUT: an int representing the fact that the course difference tree is outputted
     #   - BG_PATH: a str representing the file path to the UI background
     TREE_OUTPUT = 0
     TEXT_OUTPUT = 1
     ERROR_OUTPUT = 2
+    COURSE_DIFFERENCE_OUTPUT = 3
     BG_PATH = "course_compass_main_ui_v7.png"
 
     # Instance attributes:
@@ -253,6 +255,7 @@ class MainScreenUI(UIManager):
 
     course_difference_search_field: TextField
     course_difference_generate_button: Button
+    course_difference_tree: CourseDifference
 
     # Private instance attributes:
     #   - _tree_ui_element: a Tree UI element storing the tree to be displayed
@@ -322,10 +325,14 @@ class MainScreenUI(UIManager):
             (424, 747),
             lambda: generate_course_difference_tree(
                 self.visualizer_search_field.input_text,
-                self.course_difference_search_field.input_text
+                self.course_difference_search_field.input_text,
+                self.course_difference_tree
             )
         )
         self.ui_components.append(self.course_difference_generate_button)
+
+        self.course_difference_tree = CourseDifference(self.info_box)
+        self.ui_components.append(self.course_difference_tree)
 
         ################################
         # Course Tree related elements #
@@ -434,6 +441,8 @@ class MainScreenUI(UIManager):
             self.text_displayer.update_visually(ui_screen)
         elif self.panel_output_mode == MainScreenUI.ERROR_OUTPUT:
             self.error_displayer.update_visually(ui_screen)
+        elif self.panel_output_mode == MainScreenUI.COURSE_DIFFERENCE_OUTPUT:
+            self.course_difference_tree.update_visually(ui_screen)
         else:
             print("!!! No valid screen panel output mode was set !!!")
 
@@ -988,7 +997,9 @@ def generate_course_tree(course_code: str, tree_type: int, simplified: bool) -> 
         main_screen_ui.panel_output_mode = MainScreenUI.TREE_OUTPUT
 
 
-def generate_course_difference_tree(original_course: str, course_to_compare: str) -> None:
+def generate_course_difference_tree(original_course: str,
+                                    course_to_compare: str,
+                                    course_difference: CourseDifference) -> None:
     """
     Display a course difference tree, showing the difference between the original course and the course to compare
     """
@@ -1023,9 +1034,13 @@ def generate_course_difference_tree(original_course: str, course_to_compare: str
 
     similar_courses, tree1_exclusive, tree2_exclusive = course_difference_tree(tree1, tree2).values()
 
+    course_difference.same_to_both = similar_courses
+    course_difference.course1_exclusive = tree1_exclusive
+    course_difference.course2_exclusive = tree2_exclusive
+
     # set panel output mode to tree output
-    main_screen_ui.tree_camera.reset_camera()
-    main_screen_ui.panel_output_mode = MainScreenUI.TREE_OUTPUT
+    main_screen_ui.course_difference_tree.reset_camera()
+    main_screen_ui.panel_output_mode = MainScreenUI.COURSE_DIFFERENCE_OUTPUT
 
 def ui_dev_mode(ui_screen, ui_event):
     # TODO:delete this before final submission
@@ -1221,7 +1236,7 @@ class Tree(UIElement):
         self.tree_camera.show_outline_for_debugging(ui_screen)
 
 #TODO: as prof, python ta, root file, monster class
-class TreeCamera:
+class TreeCamera(UIElement):
     """
     A class responsible for controlling the viewing position and interaction
     of the course tree visualization.
@@ -1284,6 +1299,9 @@ class TreeCamera:
         self.node_course_code_map = []
         self.code_clicked = None
         self.course_info_box = course_info_box
+
+    def update_visually(self, ui_screen: pygame.Surface) -> None:
+        return
 
     def handle_interaction(self, mouse_event: pygame.event.Event) -> None:
         """
@@ -1365,6 +1383,112 @@ class TreeCamera:
     def show_outline_for_debugging(self, ui_screen: pygame.Surface) -> None:
         color = (255, 0, 255)
         pygame.draw.rect(ui_screen, color, self.rect, 2)
+
+
+class CourseDifference(TreeCamera):
+    course1_exclusive: set[str]
+    course2_exclusive: set[str]
+    same_to_both: set[str]
+    info_box: VisualizerInfoBox
+
+
+    def __init__(self, course_info_box: VisualizerInfoBox) -> None:
+        super().__init__(course_info_box, (480, 30), (1400, 750))
+        self.course1_exclusive = set()
+        self.course2_exclusive = set()
+        self.same_to_both = set()
+        self.info_box = course_info_box
+
+    def reset_camera(self) -> None:
+        print(self.course1_exclusive)
+        print(self.same_to_both)
+        print(self.course2_exclusive)
+        self.top_left_coord = (480, 30)
+        self.bottom_right_coord = (1400, 750)
+
+    def update_visually(self, ui_screen: pygame.Surface) -> None:
+        self.node_course_code_map.clear()
+        HORIZONTAL_SPACING = 300
+        VERTICAL_SPACING = 300
+        for idx, course_code in enumerate(self.course1_exclusive):
+            self.draw_node(
+                (course_code, ""),
+                (self.x_pos_tree - HORIZONTAL_SPACING, self.y_pos_tree + idx * VERTICAL_SPACING),
+                self.zoom_factor,
+                [],
+                ui_screen
+            )
+
+        for idx, course_code in enumerate(self.same_to_both):
+            self.draw_node(
+                (course_code, ""),
+                (self.x_pos_tree, self.y_pos_tree + idx * VERTICAL_SPACING),
+                self.zoom_factor,
+                [],
+                ui_screen
+            )
+
+        for idx, course_code in enumerate(self.course2_exclusive):
+            self.draw_node(
+                (course_code, ""),
+                (self.x_pos_tree + HORIZONTAL_SPACING, self.y_pos_tree + idx * VERTICAL_SPACING),
+                self.zoom_factor,
+                [],
+                ui_screen
+            )
+
+
+    def handle_interaction(self, mouse_event: pygame.event.Event) -> None:
+        super().handle_interaction(mouse_event)
+
+    def draw_node(self, display_vals: tuple[str, str], position: tuple[int, int], screen_zoom_factor: int,
+                  node_course_code_map: list[tuple[pygame.Rect, str]], target_screen: pygame.Surface) -> None:
+        """
+        Draw a node on point (x_pos, y_pos) with text, display_val
+
+        Preconditions:
+        - screen_zoom_factor > 0
+        """
+        # Define rectangle size with respect to the screen_zoom_factor which scales the
+        # Rectangle based on how zoomed in or out the user is
+        rect_width = int(200 * screen_zoom_factor)
+        rect_height = int(50 * screen_zoom_factor)
+
+        x_pos = position[0]
+        y_pos = position[1]
+
+        COURSE_CODE_INDEX = 0
+        COURSE_MARK_INDEX = 1
+
+        # Node is a pygame rect so that it can be drawn and interacted with later on
+        node = pygame.Rect(x_pos,
+                           y_pos,
+                           rect_width,
+                           rect_height)
+
+        # Adding node to a tuple list that maps node object with course code (display_val)
+        node_course_code_map.append((node, display_vals[COURSE_CODE_INDEX]))
+
+        # Drawing rect to screen
+        pygame.draw.rect(target_screen,
+                         (161, 202, 246),
+                         node,
+                         border_radius=int(15 * screen_zoom_factor))
+
+        # Creating the node text font
+        font_size = max(12, int(24 * screen_zoom_factor))
+        node_font = pygame.font.Font("FjallaOne-Regular.ttf", font_size)
+        # Creating node text
+        text_to_display = display_vals[COURSE_CODE_INDEX] + " " + display_vals[COURSE_MARK_INDEX]
+        text_img = node_font.render(text_to_display, True, [0, 0, 0])
+        # Get text rect so that text can be centered in the rect
+        text_rect = text_img.get_rect()
+        # Setting the text to the center of the node
+        text_rect.center = (x_pos + rect_width // 2, y_pos + rect_height // 2)
+
+        # Displaying the node text
+        target_screen.blit(text_img, text_rect)
+
 
 if __name__ == '__main__':
 
