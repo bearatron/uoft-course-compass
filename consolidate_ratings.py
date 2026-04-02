@@ -1,4 +1,14 @@
-"""Docstring  # TODO: insert docstring
+"""Course Evaluation Data Processing Pipeline.
+
+This module provides the data transformation logic for processing raw course
+evaluation data scraped into CSV files. It defines a pipeline that first cleans
+and groups the raw data by course code using regular expressions, and then
+computes key aggregate metrics.
+
+The core functions calculate average satisfaction scores, group related metrics
+(e.g., workload, assessment quality), determine historical and summer course
+availability, and rank professors based on student feedback. The final output
+is compiled into a structured JSON format used by the main visualizer application.
 
 This file is Copyright (c) 2026 Shayan Bhatti, Jacob Chislett, Ethan Diep, Shuhan Yuan
 """
