@@ -85,8 +85,8 @@ class TextField(UIElement):
     _is_active: bool
     bounds: _BoundingBox
 
-    def __init__(self, default_text: str, font_size: int, top_left_cord: tuple[int,int],
-                 bottom_right_cord: tuple[int,int]) -> None:
+    def __init__(self, default_text: str, font_size: int, top_left_cord: tuple[int, int],
+                 bottom_right_cord: tuple[int, int]) -> None:
         """
         Initializes a TextField and sets up the bounding box so that TextField is in its default state.
         """
@@ -225,6 +225,9 @@ class Checkbox(Button):
     checked: bool
 
     def __init__(self, top_left_coord, width) -> None:
+        """
+        Initialize a Checkbox and set it up with top_left_coord and width
+        """
         self.width = width
         self.height = int(self.width * Checkbox.WIDTH_TO_HEIGHT)
         self.checked = False
@@ -500,7 +503,7 @@ class VisualizerInfoBox(UIElement):
         display_multiline_text("Body", self.course_info.course_description, (text_x, text_y), font_text, ui_screen,
                                None)
 
-    def _display_stars(self, ui_screen: pygame.Surface):
+    def _display_stars(self, ui_screen: pygame.Surface) -> None:
         """
         Private helper to display rating stars for course quality, workload, and assessment
         """
@@ -534,7 +537,7 @@ class VisualizerInfoBox(UIElement):
             text_surface = font_text_styled.render(name, True, PROF_NAME_COLOR)
             ui_screen.blit(text_surface, (PROF_X_POS, PROF_Y_START + i * PROF_Y_SPACING))
 
-    def _display_review_number(self, ui_screen: pygame.Surface):
+    def _display_review_number(self, ui_screen: pygame.Surface) -> None:
         """
         Display the number of course reviews
         """

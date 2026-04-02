@@ -31,11 +31,11 @@ class CourseManager:
     """
     courses: dict[str, int]
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize a new CourseManager object with no stored courses."""
         self.courses = {}
 
-    def add_course(self, code: str, course_grade: int):
+    def add_course(self, code: str, course_grade: int) -> None:
         """
         Add a course and its respective grade to the manager.
         If the course already exists, its grade is overwritten.
@@ -88,20 +88,20 @@ class UIManager:
     """
     ui_components: list[UIElement | UIManager]
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize a new UI Manager object"""
         self.ui_components = []
 
-    def add(self, element):
+    def add(self, element: UIElement | UIManager) -> None:
         """Add a UI element to the manager"""
         self.ui_components.append(element)
 
-    def handle_event(self, ui_event):
+    def handle_event(self, ui_event: pygame.event.Event) -> None:
         """Pass a pygame event to every managed UI element"""
         for item in self.ui_components:
             item.handle_interaction(ui_event)
 
-    def update_visually(self, ui_screen):
+    def update_visually(self, ui_screen: pygame.Surface) -> None:
         """visually update appearance of every managed UI element."""
         for item in self.ui_components:
             item.update_visually(ui_screen)
@@ -278,7 +278,7 @@ class MainScreenUI(UIManager):
     _tree_ui_element: Tree
     _background_surface: pygame.Surface
 
-    def __init__(self, course_manager: CourseManager):
+    def __init__(self, course_manager: CourseManager) -> None:
         """Initialize a new MainScreenUI object"""
         super().__init__()
 
@@ -409,7 +409,7 @@ class MainScreenUI(UIManager):
                     course_manager,
                     loader,
                     main_screen_ui
-                )
+            )
         )
 
         # append to ui_components list for handle_event to work properly
@@ -470,12 +470,12 @@ class MainScreenUI(UIManager):
         """Get the private tree UI element attribute"""
         return self._tree_ui_element
 
-    def handle_event(self, ui_event):
+    def handle_event(self, ui_event: pygame.event.Event) -> None:
         """Handles a UI event"""
         # the default implementation is to call handle_interaction on all elements in the ui_components list
         super().handle_event(ui_event)
 
-    def update_visually(self, ui_screen) -> None:
+    def update_visually(self, ui_screen: pygame.Surface) -> None:
         """Update the screen based on the panel output mode"""
         # update UI elements that depend on panel output mode
         if self.panel_output_mode == MainScreenUI.TREE_OUTPUT:

@@ -99,7 +99,7 @@ class TreeVisualizer:
     ui_managers: _UIManagers
     ui_elements: _UIElements
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initializes an instance of TreeVisualizer"""
         self._initialize_pygame()
         self._initialize_images()
