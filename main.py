@@ -20,7 +20,7 @@ if __name__ == "__main__":
     # | and descriptions to a json file called 'dataset_example.json'                                                  |
     # |----------------------------------------------------------------------------------------------------------------|
     # from academic_calendar_reader import PrerequisiteTreeLoader
-    # loader = PrerequisiteTreeLoader
+    # loader = PrerequisiteTreeLoader()
     # loader.load_from_programs(['Computer Science'])
     # loader.save_to_file('dataset_example.json')
 
