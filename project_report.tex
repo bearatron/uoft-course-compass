@@ -88,7 +88,8 @@ Within \verb|consolidate_rating.py|, the \verb|group_by_course_code| function ta
     \item Takes the values for specific variables across the years, calculates their historical averages, and combines them into broader evaluation categories. \\
 
     Within the course\_evals\_parser.py there is a demo. It showcases the course evaluation scraper by automatically scraping the first two pages of UofT's course evaluations table and saving the results to \verb|demo.csv|\\
-To run the demo: run the \_main\_ block, A Chrome browser window will open automatically and navigate to UofT's course evaluations portal. The scraper will paginate through the first two pages of the table, printing each scraped row to the console. and then close the window automatically. (Note that this can only be ran on Chrome) \\ \\ \\ \\
+To run the demo: run the \_main\_ block, A Chrome browser window will open automatically and navigate to UofT's course evaluations portal. The scraper will paginate through the first two pages of the table, printing each scraped row to the console. and then close the window automatically. (Note that this can only be ran on Chrome) \\
+From this computation, we were able to implement the feature that informs the students whether the course is offered in the summer\\ \\ \\
 
 \end{enumerate}
 \textbf{Visual and Interactive Reporting}
@@ -98,7 +99,7 @@ One of the main computations our program performs is recursively drawing a cours
 
 \textbf{New Python Libraries} \\
 
-Our project makes use of three new Python libraries: \verb|BeautifulSoup|, \verb|Selenium|, and \verb|pygame|. \\
+Our project makes use of three new Python libraries: \verb|BeautifulSoup|, \verb|Selenium|, and \verb|pygame|, \verb|textwrap|, \verb|webbrowser|
 
 \verb|BeautifulSoup| from the \verb|bs4| library was used to scrape the UofT Academic Calendar in \verb|academic_calendar_reader.py|. It was initialized with \verb|BeautifulSoup(webpage.text, features="html.parser")| to convert raw HTML retrieved by \verb|requests.get()| into a structured, searchable parse tree. Methods such as \verb|soup.find()| and \verb|soup.find_all()| were then used to locate specific HTML elements containing course codes, course names, descriptions, and prerequisite strings, with the \verb|.text| attribute used to extract the plain text content from those elements. \\
 
@@ -116,6 +117,11 @@ Our project makes use of three new Python libraries: \verb|BeautifulSoup|, \verb
     \end{itemize}
 \end{itemize}
 
+\verb|Textwrap| library was used to format text across multiple lines, as some content exceeded the width of the display area and required line wrapping.
+
+The \verb|webbrowser| library was used to open links in a browser if the user clicked read more on the info box
+
+
 By using these libraries, we were able to parse through the course website and get the necessary data. After computing and cleaning the data, we got information that is later showed to the user. For example: course rating, profs\_by\_rating, and historical\_offerings... \\
 
 
@@ -123,7 +129,9 @@ By using these libraries, we were able to parse through the course website and g
 
 \subsection{Program Instructions}
 
+
 \textbf{Getting Started}
+To load the dataset from the zip file that we uploaded to markus, just extract all the contents to the root directory of the project.
 \begin{itemize}
     \item Open the \texttt{main.py} file and run the program.
     \item The program will begin with a Start Screen. Press \textbf{ENTER} to proceed.
@@ -196,10 +204,12 @@ Another feature we added it called "Summer Course Offerings". This feature would
 \section{Discussion section:}
 Our program successfully fulfills the goal of making the course selection process more accessible and understandable for UofT students. By automatically generating prerequisite and post-requisite trees from the academic calendar and displaying them interactively through pygame, students are able to visualize complex multi-level course relationships that would otherwise require extensive manual navigation of the calendar's text-based notation. The tree simplification feature further personalizes this by allowing students to input their completed courses and instantly see only what remains, and the course evaluation information provides an additional layer of information about workload and satisfaction that the academic calendar does not offer at all. \\
 
+
+
 One obstacle we encountered was the unorganized text found in the Academic calendar. It was difficult to parse through the string of text, and find the necessary course with inconsistent text patterns.
 For example, finding the correct grade prerequisite was difficult because of the lack of standardization across course prerequisites. Some examples of how this is presented are: CSC110Y1(70\% or higher)",  "60\% or higher in CSC148H1",  or "75\% or greater in CSC338H5". We found it hard to parse through these different string, and save the valid course code, and the mark required for that course. Also, since our application is intended for students at the St. George campus, we had to eliminate courses from other campuses while preserving the logical structure of the prerequisites. This required nontrivial parsing of the prerequisite string and careful consideration of the way courses could be combined with each other. \\
 
-\textbf{SHAYAN WANTS ME TO MAKE IT OBVIOUS FOR HIM TO SHOW HIS UI LIMITATION}
+A second limitation of our program came from the use of Pygame for the user interface. While Pygame is well-suited for game development, it is not the best for creating complex or feature rich UI components. For example, implementing common UI elements such as scroll bars was nontrivial and time-consuming, and thus were not included in the current version. Even simpler tasks, such as displaying multi-line text, required the use of Python’s textwrap module and lengthy custom functions. These challenges limited our ability to create a more polished and flexible interface.  \\Additionally, as the number of nodes increased in larger course trees, the program experienced performance slowdowns due to having to render numerous visual elements. This further highlighted the need for UI optimization and more efficient rendering strategies. In the future, we aim to explore alternative UI frameworks better suited for complex applications, such as Tkinter, PyQt, or Kivy, which would allow richer interactive elements and greater control over layout and styling. Additionally, we can implement rendering optimizations for large course trees, such as drawing only visible nodes or using more efficient graphics libraries, to improve performance and responsiveness. Lastly, we can enhance the UI with additional interactive features, including scrollable panels, zooming, and collapsible tree nodes, to improve usability for extensive course catalogs. \\ \\
 
 For further exploration, the most natural next step would be expanding data collection to cover all departments offered at UofT, making the tool useful for the entire student population rather than a subset. Further improvements to the pygame interface, such as better layout algorithms for very large trees, would also improve the user experience.
 Overall, our program demonstrates that trees are a natural and effective structure for representing course prerequisite data, and that combining scraped academic data with an interactive visualization can meaningfully improve how students plan their academic paths at UofT. \\
