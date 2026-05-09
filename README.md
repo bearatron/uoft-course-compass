@@ -4,6 +4,13 @@ An interactive tool for visualizing course prerequisites, postrequisites, evalua
 
 A more detailed description can be found in our [project report](./project_report.pdf).
 
+- [Features](#features)
+- [Screenshots](#screenshots)
+- [Requirements](#requirements)
+- [Install](#install)
+  - [From the Web](#from-the-web)
+  - [From the Command Line](#from-the-command-line)
+
 ## Features
 
 - **Prerequisite tree**: Visualize all the prerequisites for a particular course in an intuitive tree structure
@@ -20,16 +27,19 @@ Supported departments: Mathematics, Computer Science, Physics, Economics, Statis
 
 <p align="center">
     <img src="./readme_images/splash_screen.png" width="800px" alt="Splash screen">
+    <br>    
     <em>Splash screen</em>
 </p>
 
 <p align="center">
     <img src="./readme_images/prereq_tree.png" width="800px" alt="Prerequisite tree feature">
+    <br>
     <em>Prerequisite tree for CSC369H1</em>
 </p>
 
 <p align="center">
     <img src="./readme_images/course_info.png" width="800px" alt="Course info feature">
+    <br>    
     <em>Course info for CSC258H1</em>
 </p>
 
@@ -38,14 +48,17 @@ Supported departments: Mathematics, Computer Science, Physics, Economics, Statis
     <br>
     <p align="center">
         <img src="./readme_images/add_courses.png" width="800px" alt="Add courses feature">
+        <br>
         <em>Course input</em>
     </p>
     <p align="center">
         <img src="./readme_images/prereq_tree_simplified.png" width="800px" alt="Simplified prerequisite tree feature">
+        <br>
         <em>Simplified prerequisite tree for CSC369H1 given the above course input</em>
     </p>
     <p align="center">
         <img src="./readme_images/course_difference.png" width="800px" alt="Course difference feature">
+        <br>
         <em>Course difference between CSC369H1 and CSC311H1</em>
     </p>
 </details>
@@ -89,5 +102,5 @@ source venv/bin/activate   # macOS or Linux
 pip install -r requirements.txt
 
 # Run the program
-py main.py
+python main.py
 ```
