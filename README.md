@@ -18,26 +18,36 @@ Supported departments: Mathematics, Computer Science, Physics, Economics, Statis
 
 ## Screenshots
 
-<img src="./readme_images/splash_screen.png" width="800px" alt="Splash screen">
-Splash screen
+<p align="center">
+    <img src="./readme_images/splash_screen.png" width="800px" alt="Splash screen">
+    <em>Splash screen</em>
+</p>
 
-<img src="./readme_images/prereq_tree.png" width="800px" alt="Prerequisite tree feature">
-Prerequisite tree
+<p align="center">
+    <img src="./readme_images/prereq_tree.png" width="800px" alt="Prerequisite tree feature">
+    <em>Prerequisite tree for CSC369H1</em>
+</p>
 
-<img src="./readme_images/course_info.png" width="800px" alt="Course info feature">
-Course info
+<p align="center">
+    <img src="./readme_images/course_info.png" width="800px" alt="Course info feature">
+    <em>Course info for CSC258H1</em>
+</p>
 
-<br>
-<br>
 <details>
     <summary>View more screenshots</summary>
     <br>
-    <img src="./readme_images/add_courses.png" width="800px" alt="Add courses feature">
-    Course input
-    <img src="./readme_images/prereq_tree_simplified.png" width="800px" alt="Simplified prerequisite tree feature">
-    Simplified prerequisite tree
-    <img src="./readme_images/course_difference.png" width="800px" alt="Course difference feature">
-    Course difference
+    <p align="center">
+        <img src="./readme_images/add_courses.png" width="800px" alt="Add courses feature">
+        <em>Course input</em>
+    </p>
+    <p align="center">
+        <img src="./readme_images/prereq_tree_simplified.png" width="800px" alt="Simplified prerequisite tree feature">
+        <em>Simplified prerequisite tree for CSC369H1 given the above course input</em>
+    </p>
+    <p align="center">
+        <img src="./readme_images/course_difference.png" width="800px" alt="Course difference feature">
+        <em>Course difference between CSC369H1 and CSC311H1</em>
+    </p>
 </details>
 
 ## Requirements
