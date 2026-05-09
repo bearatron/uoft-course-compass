@@ -79,11 +79,21 @@ Supported departments: Mathematics, Computer Science, Physics, Economics, Statis
 
 <img src="./readme_images/download_zip_button.png" width="300px" alt="Download ZIP button">
 
-3. Extract the ZIP folder and open it in the command line
+3. Extract the ZIP folder
 
-4. Install requirements: `pip install -r requirements.txt`
+4. Open the extracted folder, then open a terminal in that folder:
+   - **Windows**: Right-click inside the folder and select **Open in Terminal**
+   - **macOS**: Right-click the folder and select **New Terminal at Folder**
 
-5. Run the program: `python main.py`
+5. Install requirements by typing the following and pressing Enter
+```bash
+pip install -r requirements.txt
+```
+
+6. Run the program with the command below. A window should open shortly.
+```bash
+python main.py
+```
 
 ### From the Command Line
 ```bash
@@ -93,7 +103,7 @@ git clone https://github.com/bearatron/uoft-course-compass.git
 # Navigate into the project folder
 cd uoft-course-compass
 
-# set up a virtual environment (recommended)
+# Set up a virtual environment (recommended)
 python -m venv venv
 venv\Scripts\activate      # Windows
 source venv/bin/activate   # macOS or Linux
