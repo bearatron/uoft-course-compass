@@ -1,34 +1,83 @@
 # uoft-course-compass
 
-## Setup
+An interactive tool for visualizing course prerequisites, postrequisites, evaluation data, and more to aid students at the University of Toronto with course selection and planning.
 
-It's common to use a virtual environment (venv) when working on a Python project to keep it self-contained. This allows everyone working on the project to have the same package versions installed to ensure that the code works consistently across all machines. Below are some helpful commands to set up a venv.
+A more detailed description can be found in our [project report](./project_report.pdf).
 
-- Set up your venv
+## Features
+
+- **Prerequisite tree**: Visualize all the prerequisites for a particular course in an intuitive tree structure
+- **Postrequisite tree**: See which courses a given course unlocks
+- **Tree simplification**: Enter your completed courses to hide satisfied prerequisites from the tree
+- **Course info**: Click any course node for its description, aggregated course evaluation metrics, and the top-rated professors
+- **Optimal path**: Find the recommended course sequence for optimal course quality, workload, or cognitive growth
+- **Summer offerings**: See whether a course has been historically offered in the summer
+- **Course difference**: Compare the postrequisites of two courses side by side
+
+Supported departments: Mathematics, Computer Science, Physics, Economics, Statistical Sciences
+
+## Screenshots
+
+<img src="./readme_images/splash_screen.png" width="800px" alt="Splash screen">
+Splash screen
+
+<img src="./readme_images/prereq_tree.png" width="800px" alt="Prerequisite tree feature">
+Prerequisite tree
+
+<img src="./readme_images/course_info.png" width="800px" alt="Course info feature">
+Course info
+
+<br>
+<br>
+<details>
+    <summary>View more screenshots</summary>
+    <br>
+    <img src="./readme_images/add_courses.png" width="800px" alt="Add courses feature">
+    Course input
+    <img src="./readme_images/prereq_tree_simplified.png" width="800px" alt="Simplified prerequisite tree feature">
+    Simplified prerequisite tree
+    <img src="./readme_images/course_difference.png" width="800px" alt="Course difference feature">
+    Course difference
+</details>
+
+## Requirements
+- Python 3.13 or newer
+- Google Chrome (required if you want to run the course evaluations scraper)
+
+## Install
+
+### From the Web
+
+1. Above the list of files, click the green **Code** button
+
+<img src="./readme_images/code_button.png" width="800px" alt="Green code button">
+
+2. Click **Download ZIP**
+
+<img src="./readme_images/download_zip_button.png" width="300px" alt="Download ZIP button">
+
+3. Extract the ZIP folder and open it in the command line
+
+4. Install requirements: `pip install -r requirements.txt`
+
+5. Run the program: `python main.py`
+
+### From the Command Line
 ```bash
-py -m venv venv
-```
+# Clone the repository
+git clone https://github.com/bearatron/uoft-course-compass.git
 
-- Activate the venv. You should see `(venv)` appear in your terminal after running the command. This means you're now in the venv :)
-```bash
-venv\Scripts\Activate.ps1  # Windows
-```
+# Navigate into the project folder
+cd uoft-course-compass
 
-```bash
-source venv/bin/activate  # macOS
-```
+# set up a virtual environment (recommended)
+python -m venv venv
+venv\Scripts\activate      # Windows
+source venv/bin/activate   # macOS or Linux
 
-- Install all packages
-```bash
+# Install requirements
 pip install -r requirements.txt
-```
 
-- Save dependencies (run after you install new packages i.e. `pip install <package>`)
-```bash
-pip freeze > requirements.txt
-```
-
-- To deactivate the venv once done:
-```bash
-deactivate
+# Run the program
+py main.py
 ```
