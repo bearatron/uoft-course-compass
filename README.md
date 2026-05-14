@@ -91,8 +91,15 @@ pip install -r requirements.txt
 ```
 
 6. Run the program with the command below. A window should open shortly.
+
+Windows
 ```bash
 python main.py
+```
+
+macOS or Linux
+```bash
+python3 main.py
 ```
 
 ### From the Command Line
@@ -102,15 +109,34 @@ git clone https://github.com/bearatron/uoft-course-compass.git
 
 # Navigate into the project folder
 cd uoft-course-compass
+```
 
+Windows
+```bash
 # Set up a virtual environment (recommended)
 python -m venv venv
-venv\Scripts\activate      # Windows
-source venv/bin/activate   # macOS or Linux
+
+# Activate virtual environment (choose one based on your terminal):
+venv\Scripts\activate.bat        # Command Prompt
+venv\Scripts\Activate.ps1        # PowerShell
+source venv/Scripts/activate     # Git Bash
 
 # Install requirements
 pip install -r requirements.txt
 
 # Run the program
 python main.py
+```
+
+macOS or Linux
+```bash
+# Set up a virtual environment (recommended)
+python3 -m venv venv
+source venv/bin/activate
+
+# Install requirements
+pip install -r requirements.txt
+
+# Run the program
+python3 main.py
 ```
